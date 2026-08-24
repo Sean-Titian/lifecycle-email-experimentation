@@ -1,0 +1,61 @@
+{
+  "schema_version": "1.1.0",
+  "artifact_type": "minimal_anonymous_aggregate_benchmark",
+  "privacy": {
+    "contains_row_level_data": false,
+    "contains_user_identifiers": false,
+    "contains_addresses_or_free_text": false,
+    "contains_exact_operational_counts": false,
+    "source_data_redistributed": false
+  },
+  "study_scale": {
+    "participants_approx": 480000,
+    "cohort_count": 24,
+    "template_count": 10,
+    "participant_count_is_rounded": true
+  },
+  "template_recorded_open": {
+    "best_candidate": "Template D",
+    "best_rate_approx": 0.260,
+    "runner_up_rate_approx": 0.183,
+    "interpretation": "content_candidate_for_confirmatory_test_not_funding_evidence"
+  },
+  "funding_aggregate_control_snapshot": {
+    "comparison_family_size": 24,
+    "raw_p_below_0_05": 3,
+    "corrected_p_below_0_05": 1,
+    "surviving_local_signal": {
+      "absolute_difference_percentage_points": 0.311,
+      "ci95_percentage_points": [0.122, 0.500],
+      "adjusted_p_approx": 0.011
+    },
+    "experimental_funding_claim_supported": false
+  },
+  "direct_cadence_comparisons": {
+    "corrected_advantage_supported": false
+  },
+  "unsubscribe_guardrail": {
+    "unique_recipient_risk_approx": 0.0228,
+    "preferred_denominator": "actual_unique_recipients"
+  },
+  "strict_temporal_funnel_approx": {
+    "eligible_actual_recipients": 226000,
+    "opened_after_start": 119000,
+    "linked_after_open": 2600,
+    "funded_after_link": 2200,
+    "counts_are_rounded": true,
+    "same_day_order_is_identifiable": false
+  },
+  "validity_flags": {
+    "pre_send_outcomes_detected": true,
+    "full_followup_complete_for_all_arms": false,
+    "control_has_user_level_timestamps": false,
+    "matched_treatment_control_window_possible": false,
+    "assignment_block_reused_across_groups": true,
+    "pre_treatment_negative_control_issue_detected": false
+  },
+  "claim": {
+    "supported": "one_content_candidate_and_one_local_funding_hypothesis",
+    "not_supported": "general_email_funding_increase_or_cadence_winner"
+  }
+}

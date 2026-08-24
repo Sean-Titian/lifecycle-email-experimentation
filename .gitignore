@@ -1,0 +1,33 @@
+# Private source data and locally generated synthetic files.
+data/raw/*
+data/synthetic/*
+!data/raw/.gitkeep
+!data/synthetic/.gitkeep
+
+# Generated analysis outputs.
+reports/generated/
+reports/synthetic/
+
+# Python.
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Editors and operating systems.
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Local database and model artifacts.
+*.duckdb
+*.db
+*.pkl
+*.joblib
