@@ -13,9 +13,15 @@ Synthetic records exist to exercise joins, estimators, multiplicity corrections,
 ```bash
 python -m email_experiment generate-synthetic --output-dir data/synthetic
 python -m email_experiment run-synthetic --output-dir reports/synthetic
+python -m email_experiment run-prospective-synthetic --output reports/prospective-synthetic-benchmark.json
 ```
 
 Their results must never be presented as source-campaign performance. Synthetic analysis artifacts belong under `reports/synthetic/`; do not commit subject-level CSV files.
+
+The prospective command keeps its synthetic assignment and event rows in memory and
+writes one allowlisted aggregate benchmark. That benchmark contains configuration,
+cell-level counts, estimates, quality-gate counts, and an assignment-table digest; it
+contains no participant or event identifiers.
 
 ## What is never committed
 
@@ -36,6 +42,11 @@ The `data/raw/` directory is intentionally ignored. A placeholder does not autho
 | `events.csv` | `participant_id`, `event_type`, `event_at` | one event per row; known participant; valid timestamp; event types include delivery, open, new link, conversion, and unsubscribe |
 | `manifest.json` | classification, derivation, observation end, row counts, generator configuration | labels every generated row as synthetic and records deterministic parameters |
 | `reports/synthetic/aggregate.json` | population flow, effects, CIs, corrected p-values, MDEs, censoring, negative control, ordered funnel, guardrail | aggregate-only output; contains no participant key or event row |
+
+The separate prospective in-memory schema adds pre-treatment strata and enrollment wave
+to assignments. Events add a unique synthetic event key, availability timestamp, and the
+observed content/cadence needed for contamination checks. These rows are deliberately not
+tracked; only `reports/prospective-synthetic-benchmark.json` is a public artifact.
 
 The private aggregate control is not an input to the public workflow. Its minimum non-identifying
 handoff lives separately in `reports/source-benchmark.json`; the synthetic schema does not pretend to

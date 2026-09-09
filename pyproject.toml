@@ -1,14 +1,15 @@
 [build-system]
-requires = ["setuptools>=75", "wheel"]
+requires = ["setuptools>=77", "wheel>=0.45"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "lifecycle-email-experimentation"
-version = "0.1.0"
+version = "0.2.0"
 description = "Public-safe lifecycle messaging experimentation with multiplicity, time-window, and funnel integrity checks."
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md"]
 authors = [{ name = "Zishen Tian" }]
 dependencies = [
   "numpy>=2.0,<3",
@@ -17,6 +18,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+  "build>=1.2,<2",
   "pytest>=8.3,<10",
   "ruff>=0.11,<1",
 ]

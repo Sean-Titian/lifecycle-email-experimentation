@@ -80,6 +80,21 @@ The private benchmark contains 24 retrospective segment-by-cadence comparisons a
 Compare daily with twice-weekly assignment within matched lifecycle strata. Funding and valid
 new-linking families are adjusted separately. A raw p-value is not a cadence decision.
 
+### Prospective factorial family
+
+The executable prospective rehearsal has three content levels crossed with two cadence
+levels and a concurrent holdout. Its six active-cell-versus-holdout 14-day funding risk
+differences are one pre-specified primary family under Holm family-wise error control at
+α = 0.05. Every randomized eligible participant is analyzed in the assigned cell.
+
+Unsubscribe and complaint are separate outcomes but one simultaneously covered family of 12
+active-cell-versus-holdout comparisons. Each adverse risk difference receives a
+simultaneous one-sided upper confidence bound using Bonferroni allocation. Non-inferiority
+requires that bound to be strictly below the declared absolute margin; `p > 0.05` is not a
+safety result. All 12 are disclosed, while the two bounds for the candidate named before
+outcomes are the rollout gates. Pooled factor contrasts and interactions are not used to
+rescue a null primary cell family.
+
 ## 5. Data-quality gates
 
 Inference stops if any of these gates fail without a documented resolution:
@@ -89,7 +104,12 @@ Inference stops if any of these gates fail without a documented resolution:
 3. assignment occurs after exposure or outcomes occur before eligibility;
 4. arm sizes or assignment patterns indicate an unexplained randomization failure;
 5. control eligibility, timing, or outcome definitions differ from treatment;
-6. complete follow-up is unavailable and censoring cannot be handled consistently.
+6. complete follow-up or the declared event-latency buffer is unavailable and censoring
+   cannot be handled consistently;
+7. holdout receives a campaign exposure or an active cell receives the wrong content or
+   cadence;
+8. the pre-treatment negative control shows multiplicity-adjusted evidence of an
+   assignment-related difference.
 
 The source benchmark detected ambiguous assignment keys; strict analysis excludes every affected
 record rather than keeping an arbitrary row.
@@ -147,6 +167,7 @@ It may not say:
 - [x] All numbers reconcile to machine-readable report artifacts.
 - [x] Multiplicity families and null results remain visible.
 - [x] Outcome windows and censoring are disclosed.
-- [x] User-risk denominators use unique actual recipients.
+- [x] Retrospective descriptive user-risk denominators use unique actual recipients;
+  prospective rollout guardrails use all randomized users by intention to treat.
 - [x] No raw rows, identifiers, private text, or local paths are present.
 - [x] README recommendation matches the strength of the design.

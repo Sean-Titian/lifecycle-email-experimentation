@@ -23,7 +23,7 @@ This is the experimentation equivalent of a model card: it states what evidence 
 | --- | --- | --- | --- |
 | Public executable | Synthetic-data workflow and tests | Code correctness, estimator behavior, invariant checks | Real-world effect magnitude |
 | Aggregate reproduction | `reports/source-benchmark.json` | Non-identifying descriptive rates and audit counts | Row-level verification by repository users |
-| Prospective design | `docs/experiment-design.md` | A decision-grade measurement plan | A completed real-world experiment |
+| Prospective executable | `docs/prospective-synthetic-study.md` and `reports/prospective-synthetic-benchmark.json` | Reproducible randomization, fixed-window ITT inference, quality gates, and decision logic | A completed real-world experiment or campaign effect |
 
 ## Aggregate benchmark summary
 
@@ -34,7 +34,20 @@ This is the experimentation equivalent of a model card: it states what evidence 
 - preferred unsubscribe guardrail: about 2.28% unique-user risk among actual recipients;
 - conservative new-link funnel: about 226K → 119K → 2.6K → 2.2K.
 
-## Key validity constraints
+## Prospective synthetic benchmark summary
+
+- seven concurrent cells with 8,400 fictional participants and complete 14-day ITT
+  follow-up;
+- every assignment, SRM, timing, latency, contamination, negative-control, and population
+  gate passes;
+- pre-specified candidate funding difference: +1.50 pp, nominal 95% CI -0.11 to
+  +3.14 pp, Holm-adjusted p = 0.396;
+- conservative 80% planning MDE: 2.78 pp from the declared 4% baseline, not the observed
+  holdout result;
+- candidate unsubscribe and complaint non-inferiority both remain inconclusive;
+- decision: `continue_testing`, with no real-campaign effect claim.
+
+## Retrospective source validity constraints
 
 1. Controls are segment-level aggregates, shared across cadence comparisons, without aligned user-level timestamps.
 2. Follow-up is incomplete for the longer schedule.

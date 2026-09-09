@@ -17,6 +17,27 @@ The decision is deliberately practical: **which message should a lifecycle team 
 
 The business takeaway is deliberately narrow: content engagement has a credible frontrunner, the downstream funding associations are mostly null or uncertain, and cadence remains an open product question.
 
+### Prospective design, now executable
+
+The next experiment is also implemented as a deterministic, public-safe rehearsal: three
+content levels crossed with two cadences, plus a concurrent holdout; stratified block
+randomization; 14-day intention-to-treat funding; SRM and contamination gates; and
+simultaneous unsubscribe/complaint non-inferiority bounds. The generated benchmark is a
+test of the decision system, not evidence that lifecycle email works. Its launch rule
+defaults to `continue_testing` unless the pre-specified candidate has corrected primary
+evidence, both candidate guardrails pass, and every integrity gate passes.
+
+| Canonical synthetic check | Result | Decision meaning |
+| --- | --- | --- |
+| Design and population | 8,400 randomized and analyzed by ITT; 1,200 per cell | All 8 assignment, SRM, timing, latency, contamination, negative-control, and population-integrity gates pass. |
+| Pre-specified candidate funding | +1.50 pp versus holdout; nominal 95% CI -0.11 to +3.14 pp; Holm-adjusted p = 0.396 | Superiority is not established. |
+| Prospective power | 80% planning MDE = 2.78 pp at a declared 4% baseline and conservative 0.05/6 planning alpha | The fixture is underpowered for the small simulated effect; this is shown rather than hidden. |
+| Customer-risk precision | Unsubscribe UCB 1.21 pp vs 0.50 pp margin; complaint UCB 0.65 pp vs 0.30 pp margin | Non-inferiority is inconclusive, so the candidate stays in testing. |
+
+These are deterministic simulation outputs from
+[`reports/prospective-synthetic-benchmark.json`](reports/prospective-synthetic-benchmark.json),
+not source-campaign estimates. The largest observed cell is not promoted after the fact.
+
 ### Resume metric crosswalk
 
 My resume compresses this case to roughly 480K users, 24 cohorts, 10 message templates, and one
@@ -28,6 +49,8 @@ the unmatched follow-up windows prevent a rollout claim.
 ## What this project demonstrates
 
 - **Experimentation:** absolute and relative effects, 95% confidence intervals, two-sided tests, Holm/BH multiplicity control, minimum detectable effects, and placebo checks.
+- **Prospective design:** stratified factorial randomization, concurrent holdout, sample-ratio
+  checks, aligned data freeze, and intention-to-treat non-inferiority guardrails.
 - **Product analytics:** an explicit decision memo, outcome hierarchy, capacity for null results, and customer-harm guardrails.
 - **Data quality:** one-to-one join validation, user-level deduplication, exposure-window checks, and event-table aggregation before joins.
 - **Behavioral funnels:** event-time ordering instead of counting users who completed steps at any point in their history.
@@ -56,6 +79,8 @@ docs/analysis-contract.md             estimands, units, windows, and claim rules
 docs/experiment-design.md             prospective decision-grade redesign
 docs/evidence-card.md                 intended use, evidence tiers, and limitations
 reports/source-benchmark.json         aggregate-only source benchmark
+reports/prospective-synthetic-benchmark.json
+                                      reproducible aggregate design rehearsal
 ```
 
 ## Quickstart
@@ -67,6 +92,7 @@ python -m venv .venv
 python -m pip install -e ".[dev]"
 python -m email_experiment generate-synthetic --output-dir data/synthetic
 python -m email_experiment run-synthetic --output-dir reports/synthetic
+python -m email_experiment run-prospective-synthetic --output reports/prospective-synthetic-benchmark.json
 pytest
 ruff check .
 ```
@@ -81,11 +107,16 @@ pre-treatment negative-control comparison. Its per-experiment 80% MDE is about 2
 points, far above the simulated 0.42-point effect. A large-looking synthetic win is not engineered
 into the demo.
 
+The prospective command writes only the canonical aggregate report; participant and event
+rows stay in memory. CI regenerates that report from the built wheel and requires exact
+byte equality. See [the prospective synthetic study](docs/prospective-synthetic-study.md)
+for the estimands, multiplicity families, failure gates, and limitations.
+
 ## Evidence boundary
 
 Two evidence layers are kept separate:
 
-1. **Public synthetic workflow** — safe to run, inspect, and modify. It demonstrates the analysis design and its invariants.
+1. **Public synthetic workflows** — safe to run, inspect, and modify. They demonstrate the retrospective analysis mechanics and prospective decision invariants.
 2. **Private-source aggregate benchmark** — reproduced by running the same reasoning against a restricted event extract, then exporting only a minimized set of rounded or resume-aligned values to [`reports/source-benchmark.json`](reports/source-benchmark.json).
 
 No raw event data, user identifiers, email addresses, message bodies, proprietary materials, or source-derived row-level samples are included. The implementation is an independent rewrite rather than a publication of source notebooks or templates.
@@ -100,13 +131,20 @@ The aggregate source benchmark contains useful signals, but it cannot support an
 - all groups reuse the same pre-generated assignment-order block rather than independent production randomizations;
 - raw opens have day rather than intra-day precision, preventing reliable same-day event ordering.
 
-These limitations change the recommendation, not just the footnotes. The next step is the prospective design in [docs/experiment-design.md](docs/experiment-design.md): user-level randomization, timestamped controls, a fixed outcome window, pre-registered multiplicity families, and explicit unsubscribe/complaint guardrails.
+These limitations change the recommendation, not just the footnotes. The prospective design
+in [docs/experiment-design.md](docs/experiment-design.md) is now executable on independent
+synthetic data: user-level randomization, timestamped controls, a fixed outcome window,
+pre-registered multiplicity families, and explicit unsubscribe/complaint guardrails. A
+real authorized randomized experiment is still required before any rollout claim.
 
 ## Reproducibility and public safety
 
 - Python 3.11+
 - deterministic synthetic fixtures
-- tests for joins, multiplicity, time ordering, and guardrail denominators
+- pinned canonical-report dependencies in `requirements-benchmark.txt`, while the test
+  matrix still exercises the supported package range
+- tests for joins, multiplicity, time ordering, SRM, contamination, aligned freeze,
+  report determinism, and guardrail denominators
 - Ruff linting and GitHub Actions CI
 - MIT-licensed code; source data are not redistributed
 

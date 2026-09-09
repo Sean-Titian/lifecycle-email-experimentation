@@ -6,21 +6,26 @@ The retrospective benchmark is best used to design a cleaner next test. This doc
 
 **Decision:** choose a message concept and delivery cadence that improve 14-day funding without an unacceptable increase in unsubscribe, complaint, or delivery-failure risk.
 
-**Primary hypothesis:** at least one pre-specified lifecycle strategy changes 14-day funding relative to a concurrent no-campaign or business-as-usual holdout.
+**Primary hypothesis:** at least one pre-specified lifecycle strategy changes 14-day funding relative to a concurrent no-campaign holdout.
 
 Recorded opens and links are secondary mechanisms, not substitutes for the business endpoint.
 
 ## Recommended design
 
-Use a user-level, stratified, factorial randomization when traffic permits:
+Use a user-level, stratified, factorial randomization when traffic permits. The canonical
+prospective rehearsal implements all six active cells plus one concurrent holdout:
 
 | Factor | Example arms |
 | --- | --- |
 | Content | Template D concept, current message, one additional challenger |
 | Cadence | daily, twice weekly |
-| Holdout | business-as-usual/no campaign concurrent control |
+| Holdout | no-campaign concurrent control |
 
 Randomize once at the user level before exposure and persist the assignment. Stratify on the small set of pre-treatment variables used operationally, such as lifecycle segment and tenure band. If a full factorial test is too costly, run two stages: confirm content against holdout first, then compare cadence using the winning content.
+
+The executable public-safe specification is documented in
+[prospective-synthetic-study.md](prospective-synthetic-study.md). Its synthetic results
+validate the workflow only; they do not turn this design document into real-world evidence.
 
 ## Eligibility
 
@@ -68,12 +73,14 @@ Pre-specify a non-inferiority margin for each rollout-blocking guardrail rather 
 
 Calculate sample size from the control funding rate, minimum business-relevant absolute effect, desired power, and number of primary comparisons. Do not use the observed winning effect as the planning target without shrinkage.
 
-Recommended hierarchy:
+Pre-registered hierarchy for the full factorial design:
 
-1. test the primary funding family with Holm control at α = 0.05;
-2. evaluate guardrails against pre-specified non-inferiority margins;
-3. interpret content/cadence interactions only if powered;
-4. label all other segment analyses exploratory and report the full family.
+1. test all six active-cell-versus-holdout funding comparisons as one Holm family at α = 0.05;
+2. evaluate the six active-cell comparisons for each rollout-blocking guardrail using
+   simultaneous one-sided non-inferiority bounds;
+3. estimate pooled content and cadence contrasts only as pre-registered secondary
+   analyses, and interpret their interaction only if separately powered;
+4. label all segment analyses exploratory and report the full family.
 
 Open-rate differences can guide iteration but cannot rescue a null funding result.
 

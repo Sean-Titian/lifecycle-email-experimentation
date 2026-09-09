@@ -15,6 +15,10 @@ from .funnel import (
     summarize_ordered_funnel,
     unsubscribe_metrics,
 )
+from .prospective import (
+    ProspectiveSyntheticConfig,
+    write_prospective_synthetic_benchmark,
+)
 from .statistics import (
     approximate_mde,
     compare_binary_proportions,
@@ -192,6 +196,18 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--participants", type=int, default=8_000)
     run.add_argument("--experiments", type=int, default=4)
     run.add_argument("--seed", type=int, default=20260824)
+    prospective = subparsers.add_parser(
+        "run-prospective-synthetic",
+        help="run the seven-arm prospective synthetic method check",
+    )
+    prospective.add_argument(
+        "--output",
+        default="reports/prospective-synthetic-benchmark.json",
+        help="synthetic-labeled aggregate JSON path",
+    )
+    prospective.add_argument("--seed", type=int, default=20260908)
+    prospective.add_argument("--units-per-arm-per-block", type=int, default=100)
+    prospective.add_argument("--waves", type=int, default=2)
     return parser
 
 
@@ -207,5 +223,13 @@ def main(argv: list[str] | None = None) -> int:
             write_synthetic_bundle(args.output_dir, config)
         else:
             write_synthetic_aggregate(args.output_dir, config)
+        return 0
+    if args.command == "run-prospective-synthetic":
+        config = ProspectiveSyntheticConfig(
+            seed=args.seed,
+            units_per_arm_per_block=args.units_per_arm_per_block,
+            assignment_waves=args.waves,
+        )
+        write_prospective_synthetic_benchmark(args.output, config)
         return 0
     raise AssertionError("argparse accepted an unknown command")

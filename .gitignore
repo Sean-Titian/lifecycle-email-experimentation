@@ -1,12 +1,99 @@
-# Private source data and locally generated synthetic files.
+# Private source data and locally generated row-level synthetic files.
 data/raw/*
 data/synthetic/*
 !data/raw/.gitkeep
 !data/synthetic/.gitkeep
 
-# Generated analysis outputs.
+# Generated analysis outputs. Canonical public evidence lives at an explicitly
+# allowlisted top-level path under reports/ and is never written here.
 reports/generated/
 reports/synthetic/
+
+# Row-oriented data and local extracts are never repository artifacts.
+*.csv
+*.tsv
+*.jsonl
+*.ndjson
+*.parquet
+*.feather
+*.arrow
+*.orc
+*.avro
+*.rds
+*.rdata
+*.sas7bdat
+*.sav
+*.dta
+*.txt
+!requirements-benchmark.txt
+
+# Databases, trained models, and numerical dumps.
+*.duckdb
+*.db
+*.sqlite
+*.sqlite3
+*.pkl
+*.pickle
+*.joblib
+*.npy
+*.npz
+*.pt
+*.pth
+*.ckpt
+*.h5
+*.hdf5
+*.keras
+*.onnx
+*.safetensors
+*.bin
+
+# Course/source documents, notebooks, media, and archives stay local.
+*.ipynb
+*.doc
+*.docx
+*.pdf
+*.ppt
+*.pptx
+*.xls
+*.xlsx
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.ico
+*.mp3
+*.wav
+*.flac
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.webm
+*.zip
+*.7z
+*.rar
+*.tar
+*.tar.gz
+*.tgz
+*.gz
+*.bz2
+*.xz
+*.jar
+course_materials/
+teacher_materials/
+reference_answers/
+videos/
+
+# Credentials and machine-specific configuration.
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.json
+secrets.*
 
 # Python.
 __pycache__/
@@ -14,10 +101,17 @@ __pycache__/
 *.egg-info/
 .pytest_cache/
 .ruff_cache/
+.mypy_cache/
+.tox/
+.nox/
+.coverage.*
 .coverage
 htmlcov/
 .venv/
 venv/
+__pypackages__/
+build/
+dist/
 
 # Editors and operating systems.
 .idea/
@@ -25,9 +119,3 @@ venv/
 .DS_Store
 Thumbs.db
 Desktop.ini
-
-# Local database and model artifacts.
-*.duckdb
-*.db
-*.pkl
-*.joblib

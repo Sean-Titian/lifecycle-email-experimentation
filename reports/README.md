@@ -15,6 +15,19 @@ The benchmark is included so public claims are machine-readable and auditable ag
 
 Reports produced from the public synthetic workflow may be regenerated locally. Their numbers demonstrate code behavior only. They should be labeled `synthetic` and must not overwrite the source benchmark.
 
+## `prospective-synthetic-benchmark.json`
+
+This tracked, deterministic aggregate is the executable acceptance test for the seven-cell
+prospective design. It reports the six pre-specified funding comparisons, simultaneous
+intention-to-treat unsubscribe and complaint guardrails, sample-ratio and contamination
+checks, pre-period negative controls, follow-up and event-latency completeness, and the
+resulting decision. It includes no synthetic rows or identifiers and makes no empirical
+claim about a real campaign.
+
+CI rebuilds the report from packaged code and requires byte-for-byte equality, so changing
+the estimand, seed, configuration, or serialization cannot silently leave stale numbers in
+the repository.
+
 ## Publication checks
 
 Before committing any new report:
