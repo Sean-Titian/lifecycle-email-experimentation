@@ -102,14 +102,23 @@ Inference stops if any of these gates fail without a documented resolution:
 1. assignment and subject tables cannot be made one-to-one;
 2. an event-table join increases the unique-subject denominator;
 3. assignment occurs after exposure or outcomes occur before eligibility;
-4. arm sizes or assignment patterns indicate an unexplained randomization failure;
+4. any declared randomization block is not allocated equally across all seven cells, or
+   arm sizes indicate an unexplained randomization failure;
 5. control eligibility, timing, or outcome definitions differ from treatment;
 6. complete follow-up or the declared event-latency buffer is unavailable and censoring
    cannot be handled consistently;
 7. holdout receives a campaign exposure or an active cell receives the wrong content or
    cadence;
-8. the pre-treatment negative control shows multiplicity-adjusted evidence of an
+8. a synthetic active assignment has no correct in-window delivery (the participant remains
+   in ITT);
+9. the pre-treatment negative control shows multiplicity-adjusted evidence of an
    assignment-related difference.
+
+Every public table must also have unique column names and explicitly timezone-aware clock
+fields. The executable synthetic harness audits known-event latency. A production analysis
+must additionally prove endpoint-source completeness with source watermarks or complete
+participant-level snapshots; absence of rows in a sparse event log is not, by itself,
+evidence of zero outcomes.
 
 The source benchmark detected ambiguous assignment keys; strict analysis excludes every affected
 record rather than keeping an arbitrary row.

@@ -7,6 +7,7 @@ import pytest
 
 from email_experiment.contracts import ContractError
 from email_experiment.decision import (
+    REQUIRED_QUALITY_GATES,
     evaluate_guardrail_family,
     evaluate_primary_family,
     make_launch_decision,
@@ -71,6 +72,12 @@ def _factorial_frame(
 
 def _margins() -> dict[str, float]:
     return {"unsubscribe_14d": 0.01, "complaint_14d": 0.01}
+
+
+def _quality_gates(**overrides: bool) -> dict[str, bool]:
+    gates = dict.fromkeys(REQUIRED_QUALITY_GATES, True)
+    gates.update(overrides)
+    return gates
 
 
 def test_primary_family_is_six_cell_vs_holdout_holm_family() -> None:
@@ -220,7 +227,7 @@ def test_decision_never_selects_the_observed_largest_arm() -> None:
     no_candidate = make_launch_decision(
         primary,
         guardrails,
-        {"srm": True, "followup_complete": True, "negative_control": True},
+        _quality_gates(),
         candidate_arm=None,
     )
     assert no_candidate.status == "continue_testing"
@@ -229,7 +236,7 @@ def test_decision_never_selects_the_observed_largest_arm() -> None:
     specified = make_launch_decision(
         primary,
         guardrails,
-        {"srm": True, "followup_complete": True, "negative_control": True},
+        _quality_gates(),
         candidate_arm="content_a_daily",
     )
     assert specified.status == "criteria_met"
@@ -249,35 +256,85 @@ def test_any_failed_quality_or_guardrail_gate_means_continue_testing() -> None:
     result = make_launch_decision(
         primary,
         guardrails,
-        {"srm": False, "followup_complete": True, "negative_control": True},
+        _quality_gates(sample_ratio=False),
         candidate_arm="content_a_daily",
     )
     assert result.status == "continue_testing"
-    assert "quality_gate_failed:srm" in result.reasons
+    assert "quality_gate_failed:sample_ratio" in result.reasons
     assert (
         "guardrail_noninferiority_not_established:unsubscribe_14d"
         in result.reasons
     )
 
 
-def test_decision_rejects_empty_or_nonboolean_quality_gates() -> None:
+def test_decision_requires_every_named_quality_gate_and_boolean_values() -> None:
     frame = _factorial_frame(total_per_arm=100)
     primary = evaluate_primary_family(frame)
     guardrails = evaluate_guardrail_family(
         frame,
         margins={"unsubscribe_14d": 0.5, "complaint_14d": 0.5},
     )
-    with pytest.raises(ContractError, match="at least one quality gate"):
+    with pytest.raises(ContractError, match="missing 10 required"):
         make_launch_decision(
             primary, guardrails, {}, candidate_arm="content_a_daily"
+        )
+    missing = _quality_gates()
+    del missing["active_delivery_coverage"]
+    with pytest.raises(ContractError, match="missing 1 required"):
+        make_launch_decision(
+            primary, guardrails, missing, candidate_arm="content_a_daily"
         )
     with pytest.raises(ContractError, match="boolean values"):
         make_launch_decision(
             primary,
             guardrails,
-            {"srm": 1},  # type: ignore[dict-item]
+            _quality_gates(sample_ratio=1),  # type: ignore[arg-type]
             candidate_arm="content_a_daily",
         )
+
+
+def test_decision_allows_stricter_extra_quality_gates() -> None:
+    frame = _factorial_frame(
+        funded={"holdout": 250, "content_a_daily": 500}
+    )
+    primary = evaluate_primary_family(frame)
+    guardrails = evaluate_guardrail_family(frame, margins=_margins())
+
+    passed = make_launch_decision(
+        primary,
+        guardrails,
+        _quality_gates(custom_readiness_review=True),
+        candidate_arm="content_a_daily",
+    )
+    assert passed.status == "criteria_met"
+
+    failed = make_launch_decision(
+        primary,
+        guardrails,
+        _quality_gates(custom_readiness_review=False),
+        candidate_arm="content_a_daily",
+    )
+    assert failed.status == "continue_testing"
+    assert failed.failed_quality_gates == ("custom_readiness_review",)
+
+
+def test_each_required_quality_gate_is_rollout_blocking() -> None:
+    frame = _factorial_frame(
+        funded={"holdout": 250, "content_a_daily": 500}
+    )
+    primary = evaluate_primary_family(frame)
+    guardrails = evaluate_guardrail_family(frame, margins=_margins())
+
+    for gate in REQUIRED_QUALITY_GATES:
+        result = make_launch_decision(
+            primary,
+            guardrails,
+            _quality_gates(**{gate: False}),
+            candidate_arm="content_a_daily",
+        )
+        assert result.status == "continue_testing"
+        assert result.failed_quality_gates == (gate,)
+        assert f"quality_gate_failed:{gate}" in result.reasons
 
 
 def test_decision_rejects_tampered_pass_indicators() -> None:
@@ -291,7 +348,7 @@ def test_decision_rejects_tampered_pass_indicators() -> None:
         make_launch_decision(
             bad_primary,
             guardrails,
-            {"srm": True},
+            _quality_gates(),
             candidate_arm="content_a_daily",
         )
 
@@ -301,6 +358,6 @@ def test_decision_rejects_tampered_pass_indicators() -> None:
         make_launch_decision(
             primary,
             bad_guardrail,
-            {"srm": True},
+            _quality_gates(),
             candidate_arm="content_a_daily",
         )

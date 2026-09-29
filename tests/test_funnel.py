@@ -76,6 +76,28 @@ def test_same_timestamp_does_not_establish_stage_order() -> None:
     assert not result.loc[0, "linked_reached"]
 
 
+def test_funnel_rejects_timezone_naive_event_and_cohort_times() -> None:
+    events = pd.DataFrame(
+        {
+            "participant_id": ["synthetic_01"],
+            "event_type": ["opened"],
+            "event_at": ["2026-01-01T01:00:00"],
+        }
+    )
+    with pytest.raises(ContractError, match="timezone-naive"):
+        ordered_funnel_membership(events, ["opened"])
+
+    events["event_at"] = "2026-01-01T01:00:00Z"
+    cohort = pd.DataFrame(
+        {
+            "participant_id": ["synthetic_01"],
+            "assigned_at": ["2026-01-01T00:00:00"],
+        }
+    )
+    with pytest.raises(ContractError, match="timezone-naive"):
+        ordered_funnel_membership(events, ["opened"], cohort=cohort)
+
+
 def test_new_link_estimand_excludes_prelinked_and_prefunded_population() -> None:
     cohort = pd.DataFrame(
         {
@@ -100,6 +122,48 @@ def test_new_link_estimand_excludes_prelinked_and_prefunded_population() -> None
     result = new_link_funnel_membership(events, cohort)
     assert list(result["participant_id"]) == ["synthetic_01"]
     assert result.loc[0, "converted_reached"]
+
+
+def test_new_link_validates_excluded_rows_and_unknown_events_before_filtering() -> None:
+    cohort = pd.DataFrame(
+        {
+            "participant_id": ["synthetic_01", "synthetic_excluded"],
+            "assigned_at": ["2026-01-01T00:00:00Z", "2026-01-01T00:00:00"],
+            "linked_before_entry": [False, True],
+            "converted_before_entry": [False, False],
+        }
+    )
+    events = pd.DataFrame(
+        {
+            "participant_id": ["synthetic_01"],
+            "event_type": ["opened"],
+            "event_at": ["2026-01-01T01:00:00Z"],
+        }
+    )
+    with pytest.raises(ContractError, match="timezone-naive"):
+        new_link_funnel_membership(events, cohort)
+
+    cohort.loc[1, "assigned_at"] = "2026-01-01T00:00:00Z"
+    excluded_naive = pd.concat(
+        [
+            events,
+            pd.DataFrame(
+                {
+                    "participant_id": ["synthetic_excluded"],
+                    "event_type": ["opened"],
+                    "event_at": ["2026-01-01T01:00:00"],
+                }
+            ),
+        ],
+        ignore_index=True,
+    )
+    with pytest.raises(ContractError, match="timezone-naive"):
+        new_link_funnel_membership(excluded_naive, cohort)
+
+    unknown = events.copy()
+    unknown.loc[0, "participant_id"] = "synthetic_unknown"
+    with pytest.raises(ContractError, match="outside the cohort"):
+        new_link_funnel_membership(unknown, cohort)
 
 
 def test_unsubscribe_user_risk_and_event_rate_keep_distinct_denominators() -> None:

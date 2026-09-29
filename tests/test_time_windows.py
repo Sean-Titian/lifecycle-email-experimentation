@@ -86,3 +86,55 @@ def test_window_rejects_orphan_event_rows() -> None:
         construct_windowed_outcome(
             assignments, events, observation_end="2026-01-08T00:00:00Z"
         )
+
+
+@pytest.mark.parametrize(
+    ("assignment_time", "event_time", "observation_end"),
+    [
+        ("2026-01-01T00:00:00", "2026-01-02T00:00:00Z", "2026-01-08T00:00:00Z"),
+        ("2026-01-01T00:00:00Z", "2026-01-02T00:00:00", "2026-01-08T00:00:00Z"),
+        ("2026-01-01T00:00:00Z", "2026-01-02T00:00:00Z", "2026-01-08T00:00:00"),
+    ],
+)
+def test_window_rejects_timezone_naive_inputs(
+    assignment_time: str,
+    event_time: str,
+    observation_end: str,
+) -> None:
+    assignments = pd.DataFrame(
+        {"participant_id": ["synthetic_01"], "assigned_at": [assignment_time]}
+    )
+    events = pd.DataFrame(
+        {
+            "participant_id": ["synthetic_01"],
+            "event_type": ["converted"],
+            "event_at": [event_time],
+        }
+    )
+    with pytest.raises(ContractError, match="timezone"):
+        construct_windowed_outcome(
+            assignments, events, observation_end=observation_end
+        )
+
+
+def test_window_normalizes_explicit_timezone_offsets_to_utc() -> None:
+    assignments = pd.DataFrame(
+        {
+            "participant_id": ["synthetic_01"],
+            "assigned_at": ["2026-01-01T02:00:00+02:00"],
+        }
+    )
+    events = pd.DataFrame(
+        {
+            "participant_id": ["synthetic_01"],
+            "event_type": ["converted"],
+            "event_at": ["2026-01-01T03:00:00+02:00"],
+        }
+    )
+    result = construct_windowed_outcome(
+        assignments,
+        events,
+        observation_end="2026-01-08T00:00:00Z",
+    )
+    assert result.loc[0, "assigned_at"] == pd.Timestamp("2026-01-01T00:00:00Z")
+    assert result.loc[0, "outcome"] == True  # noqa: E712

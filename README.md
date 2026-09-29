@@ -29,7 +29,7 @@ evidence, both candidate guardrails pass, and every integrity gate passes.
 
 | Canonical synthetic check | Result | Decision meaning |
 | --- | --- | --- |
-| Design and population | 8,400 randomized and analyzed by ITT; 1,200 per cell | All 8 assignment, SRM, timing, latency, contamination, negative-control, and population-integrity gates pass. |
+| Design and population | 8,400 randomized and analyzed by ITT; 1,200 per cell | All 10 assignment, exact-block, SRM, concurrent-holdout, timing, known-event latency, delivery-coverage, contamination, negative-control, and population-integrity gates pass. |
 | Pre-specified candidate funding | +1.50 pp versus holdout; nominal 95% CI -0.11 to +3.14 pp; Holm-adjusted p = 0.396 | Superiority is not established. |
 | Prospective power | 80% planning MDE = 2.78 pp at a declared 4% baseline and conservative 0.05/6 planning alpha | The fixture is underpowered for the small simulated effect; this is shown rather than hidden. |
 | Customer-risk precision | Unsubscribe UCB 1.21 pp vs 0.50 pp margin; complaint UCB 0.65 pp vs 0.30 pp margin | Non-inferiority is inconclusive, so the candidate stays in testing. |
@@ -40,7 +40,8 @@ not source-campaign estimates. The largest observed cell is not promoted after t
 
 ### Resume metric crosswalk
 
-My resume compresses this case to roughly 480K users, 24 cohorts, 10 message templates, and one
+An earlier resume version compressed this case to roughly 480K users, 24 cohorts,
+10 message templates, and one
 funding-rate difference that remained after correction (+0.311 pp; adjusted p = 0.011). Those values
 reconcile to the private audit. This repository supplies the qualification that cannot fit in one
 resume bullet: it is a retrospective aggregate-control snapshot difference, not causal uplift, and
@@ -112,6 +113,15 @@ rows stay in memory. CI regenerates that report from the built wheel and require
 byte equality. See [the prospective synthetic study](docs/prospective-synthetic-study.md)
 for the estimands, multiplicity families, failure gates, and limitations.
 
+Package 0.3.0 hardens the prospective contract: it rejects duplicate column names,
+timezone-naive timestamps, and any assignment ledger that is not exactly balanced across
+all seven cells inside every declared block. A synthetic active assignment
+without at least one correct delivery inside
+the 14-day window blocks the decision while remaining in the ITT denominator. These checks
+validate the public rehearsal; a real deployment still needs independently verified source
+watermarks because a sparse event table cannot prove that an entirely missing endpoint feed
+is complete.
+
 ## Evidence boundary
 
 Two evidence layers are kept separate:
@@ -143,8 +153,9 @@ real authorized randomized experiment is still required before any rollout claim
 - deterministic synthetic fixtures
 - pinned canonical-report dependencies in `requirements-benchmark.txt`, while the test
   matrix still exercises the supported package range
-- tests for joins, multiplicity, time ordering, SRM, contamination, aligned freeze,
-  report determinism, and guardrail denominators
+- tests for joins, multiplicity, strict timezone handling, exact block allocation, SRM,
+  delivery coverage, contamination, aligned freeze, report determinism, and guardrail
+  denominators
 - Ruff linting and GitHub Actions CI
 - MIT-licensed code; source data are not redistributed
 

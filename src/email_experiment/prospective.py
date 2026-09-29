@@ -27,8 +27,15 @@ from .assignment import (
     stratified_factorial_assignment,
     validate_assignments,
 )
-from .contracts import ContractError, validate_unique_key
+from .contracts import (
+    ContractError,
+    parse_aware_utc_series,
+    parse_aware_utc_timestamp,
+    require_exact_columns,
+    validate_unique_key,
+)
 from .decision import (
+    REQUIRED_QUALITY_GATES,
     evaluate_guardrail_family,
     evaluate_primary_family,
     make_launch_decision,
@@ -108,6 +115,8 @@ class ContaminationAudit:
     pre_assignment_delivery_rows: int
     affected_participants: int
     passed: bool
+    active_participants_without_in_window_delivery: int = 0
+    active_delivery_coverage_passed: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -128,54 +137,6 @@ class FollowupAudit:
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
-
-
-def _require_exact_columns(
-    frame: pd.DataFrame,
-    expected: tuple[str, ...],
-    *,
-    frame_name: str,
-) -> None:
-    missing = sorted(set(expected) - set(frame.columns))
-    unexpected = sorted(set(frame.columns) - set(expected))
-    if missing or unexpected:
-        raise ContractError(
-            f"{frame_name} schema mismatch: {len(missing)} missing and "
-            f"{len(unexpected)} unexpected columns"
-        )
-
-
-def _aware_utc(series: pd.Series, *, name: str) -> pd.Series:
-    converted: list[pd.Timestamp] = []
-    invalid = 0
-    naive = 0
-    for value in series:
-        try:
-            timestamp = pd.Timestamp(value)
-        except (TypeError, ValueError):
-            invalid += 1
-            continue
-        if pd.isna(timestamp):
-            invalid += 1
-        elif timestamp.tzinfo is None:
-            naive += 1
-        else:
-            converted.append(timestamp.tz_convert("UTC"))
-    if invalid or naive or len(converted) != len(series):
-        raise ContractError(
-            f"{name} has {invalid} invalid or missing and {naive} timezone-naive values"
-        )
-    return pd.Series(converted, index=series.index, dtype="datetime64[ns, UTC]")
-
-
-def _aware_scalar(value: object, *, name: str) -> pd.Timestamp:
-    try:
-        timestamp = pd.Timestamp(value)
-    except (TypeError, ValueError) as exc:
-        raise ContractError(f"{name} must be a valid timezone-aware timestamp") from exc
-    if pd.isna(timestamp) or timestamp.tzinfo is None:
-        raise ContractError(f"{name} must be a valid timezone-aware timestamp")
-    return timestamp.tz_convert("UTC")
 
 
 def _validate_config(config: ProspectiveSyntheticConfig) -> None:
@@ -472,7 +433,7 @@ def validate_events(
     """Validate the exact event contract without silently repairing rows."""
 
     assignment_work = validate_assignments(assignments)
-    _require_exact_columns(events, EVENT_COLUMNS, frame_name="events")
+    require_exact_columns(events, EVENT_COLUMNS, frame_name="events")
     validate_unique_key(events, "event_id", frame_name="events")
     working = events.loc[:, EVENT_COLUMNS].copy()
     for column in ("event_id", "participant_id", "event_type"):
@@ -486,8 +447,10 @@ def validate_events(
     invalid_types = int((~working["event_type"].isin(EVENT_TYPES)).sum())
     if invalid_types:
         raise ContractError(f"events contain {invalid_types} unsupported event types")
-    working["event_at"] = _aware_utc(working["event_at"], name="event_at")
-    working["available_at"] = _aware_utc(
+    working["event_at"] = parse_aware_utc_series(
+        working["event_at"], name="event_at"
+    )
+    working["available_at"] = parse_aware_utc_series(
         working["available_at"], name="available_at"
     )
     before_occurrence = int((working["available_at"] < working["event_at"]).sum())
@@ -540,7 +503,7 @@ def audit_contamination(
     assignments: pd.DataFrame,
     events: pd.DataFrame,
 ) -> ContaminationAudit:
-    """Detect holdout exposure, active cross-cell sends, and early exposure."""
+    """Audit contamination and minimum in-window active delivery coverage."""
 
     assignment_work = validate_assignments(assignments)
     event_work = validate_events(assignment_work, events)
@@ -561,11 +524,34 @@ def audit_contamination(
     )
     pre_assignment = deliveries["event_at"] < deliveries["assigned_at"]
     contaminated = holdout | content_mismatch | cadence_mismatch | pre_assignment
-    active_ids = set(assignment_work.loc[assignment_work["arm"] != HOLDOUT_ARM, "participant_id"])
-    delivered_ids = set(deliveries.loc[~holdout, "participant_id"])
+    active_ids = set(
+        assignment_work.loc[
+            assignment_work["arm"] != HOLDOUT_ARM, "participant_id"
+        ]
+    )
+    in_window = deliveries["event_at"] < (
+        deliveries["assigned_at"] + pd.Timedelta(days=FOLLOWUP_DAYS)
+    )
+    valid_active_delivery = (
+        ~holdout
+        & ~content_mismatch
+        & ~cadence_mismatch
+        & ~pre_assignment
+        & in_window
+    )
+    any_active_delivery_ids = set(deliveries.loc[~holdout, "participant_id"])
+    valid_delivery_ids = set(
+        deliveries.loc[valid_active_delivery, "participant_id"]
+    )
+    missing_any_active_deliveries = len(active_ids - any_active_delivery_ids)
+    missing_valid_active_deliveries = len(active_ids - valid_delivery_ids)
     audit = ContaminationAudit(
         delivery_rows=len(deliveries),
-        active_participants_without_delivery=len(active_ids - delivered_ids),
+        active_participants_without_delivery=missing_any_active_deliveries,
+        active_participants_without_in_window_delivery=(
+            missing_valid_active_deliveries
+        ),
+        active_delivery_coverage_passed=missing_valid_active_deliveries == 0,
         holdout_delivery_rows=int(holdout.sum()),
         cross_content_delivery_rows=int(content_mismatch.sum()),
         cross_cadence_delivery_rows=int(cadence_mismatch.sum()),
@@ -592,7 +578,7 @@ def audit_followup(
         raise ContractError("latency_buffer_hours must be non-negative")
     assignment_work = validate_assignments(assignments)
     event_work = validate_events(assignment_work, events)
-    freeze = _aware_scalar(data_freeze_at, name="data_freeze_at")
+    freeze = parse_aware_utc_timestamp(data_freeze_at, name="data_freeze_at")
     assignment_times = assignment_work[["participant_id", "assigned_at"]].copy()
     assignment_times["window_end"] = assignment_times["assigned_at"] + pd.Timedelta(
         days=followup_days
@@ -680,7 +666,7 @@ def construct_prospective_analysis(
         )
     assignments = validate_assignments(data.assignments)
     events = validate_events(assignments, data.events)
-    freeze = _aware_scalar(data.data_freeze_at, name="data_freeze_at")
+    freeze = parse_aware_utc_timestamp(data.data_freeze_at, name="data_freeze_at")
     available = events.loc[events["available_at"] <= freeze].copy()
     analysis = assignments.loc[:, ["participant_id", "arm", "content", "cadence"]].copy()
     for outcome_column, event_type in OUTCOME_EVENT_MAP.items():
@@ -787,14 +773,22 @@ def build_prospective_synthetic_benchmark(
     )
     quality_gates = {
         "assignment_contract": True,
+        "exact_block_allocation": True,
         "sample_ratio": bool(srm.passed),
         "concurrent_holdout": concurrent_holdout,
         "aligned_14_day_followup": bool(followup.aligned_14_day_followup),
         "complete_followup_and_latency_buffer": bool(followup.passed),
         "no_contamination": bool(contamination.passed),
+        "active_delivery_coverage": bool(
+            contamination.active_delivery_coverage_passed
+        ),
         "pre_period_negative_control": negative_control_passed,
         "itt_population_preserved": len(analysis) == len(assignments),
     }
+    if tuple(quality_gates) != REQUIRED_QUALITY_GATES:
+        raise ContractError(
+            "canonical quality-gate schema does not match the decision contract"
+        )
     decision = make_launch_decision(
         primary,
         guardrails,
@@ -812,7 +806,7 @@ def build_prospective_synthetic_benchmark(
     )
 
     report: dict[str, object] = {
-        "schema_version": "1.0.0",
+        "schema_version": "1.1.0",
         "artifact_type": "synthetic_prospective_factorial_benchmark",
         "data_classification": "synthetic",
         "report_scope": "aggregate_only",
@@ -825,10 +819,23 @@ def build_prospective_synthetic_benchmark(
             "followup_interval": "[assigned_at, assigned_at + 14 days)",
             "factorial_cells": 6,
             "total_arms": 7,
+            "assignment_completeness": (
+                "synthetic generator reconciled internally; external ledgers require "
+                "a frozen eligibility snapshot"
+            ),
             "primary_multiplicity": "six active-vs-holdout comparisons; Holm FWER",
             "guardrail_multiplicity": (
                 "twelve one-sided active-vs-holdout bounds; Bonferroni family"
             ),
+            "active_delivery_coverage": (
+                "minimum one correct in-window delivery per active assignment; "
+                "intention-to-treat population retained"
+            ),
+            "event_source_completeness": (
+                "synthetic generator only; external sparse feeds require independent "
+                "completeness watermarks"
+            ),
+            "required_quality_gates": list(REQUIRED_QUALITY_GATES),
             "estimator_note": (
                 "Unadjusted intention-to-treat cell differences with nominal large-sample "
                 "intervals; exact within-block allocation balances the canonical fixture, "

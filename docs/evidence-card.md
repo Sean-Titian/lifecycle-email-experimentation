@@ -38,8 +38,8 @@ This is the experimentation equivalent of a model card: it states what evidence 
 
 - seven concurrent cells with 8,400 fictional participants and complete 14-day ITT
   follow-up;
-- every assignment, SRM, timing, latency, contamination, negative-control, and population
-  gate passes;
+- every assignment, exact-block, SRM, timing, known-event latency, in-window delivery,
+  contamination, negative-control, and population gate passes;
 - pre-specified candidate funding difference: +1.50 pp, nominal 95% CI -0.11 to
   +3.14 pp, Holm-adjusted p = 0.396;
 - conservative 80% planning MDE: 2.78 pp from the declared 4% baseline, not the observed
@@ -73,6 +73,10 @@ resume-aligned aggregates and qualitative validity flags; the full audit remains
 - unique-user guardrail denominators;
 - temporal funnel ordering;
 - deterministic synthetic tests and CI.
+
+The synthetic gate set cannot prove that a real sparse endpoint feed is complete. Production
+use requires source watermarks or complete participant-level outcome snapshots before zero
+events can be interpreted as zero outcomes.
 
 ## Maintenance
 

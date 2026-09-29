@@ -12,8 +12,10 @@ from email_experiment.assignment import (
     stratified_factorial_assignment,
 )
 from email_experiment.contracts import ContractError
+from email_experiment.decision import REQUIRED_QUALITY_GATES
 from email_experiment.prospective import (
     EVENT_COLUMNS,
+    ContaminationAudit,
     ProspectiveSyntheticConfig,
     ProspectiveSyntheticData,
     audit_contamination,
@@ -68,6 +70,13 @@ def _event(
         "delivered_content": delivered_content,
         "delivered_cadence": delivered_cadence,
     }
+
+
+def test_contamination_audit_preserves_the_legacy_constructor_shape() -> None:
+    audit = ContaminationAudit(10, 0, 0, 0, 0, 0, 0, True)
+    assert audit.passed
+    assert audit.active_participants_without_in_window_delivery == 0
+    assert not audit.active_delivery_coverage_passed
 
 
 def test_generator_is_deterministic_seven_arm_concurrent_and_public_safe() -> None:
@@ -282,6 +291,51 @@ def test_contamination_gate_catches_holdout_cross_factor_and_early_delivery() ->
     assert not early_audit.passed
 
 
+def test_active_delivery_coverage_requires_a_correct_in_window_delivery() -> None:
+    data = generate_prospective_synthetic(_small_config())
+    active = data.assignments.loc[data.assignments["arm"] != HOLDOUT_ARM].iloc[0]
+    participant = active["participant_id"]
+    without_delivery = data.events.loc[
+        ~(
+            data.events["participant_id"].eq(participant)
+            & data.events["event_type"].eq("delivered")
+        )
+    ].copy()
+    missing_audit = audit_contamination(data.assignments, without_delivery)
+    assert missing_audit.active_participants_without_delivery == 1
+    assert missing_audit.active_participants_without_in_window_delivery == 1
+    assert not missing_audit.active_delivery_coverage_passed
+    assert missing_audit.passed
+
+    outside_window = pd.concat(
+        [
+            without_delivery,
+            pd.DataFrame(
+                [
+                    _event(
+                        event_id="synthetic_event_outside_delivery_window",
+                        participant_id=participant,
+                        event_type="delivered",
+                        event_at=active["assigned_at"] + pd.Timedelta(days=14),
+                        available_at=(
+                            active["assigned_at"]
+                            + pd.Timedelta(days=14, minutes=1)
+                        ),
+                        delivered_content=active["content"],
+                        delivered_cadence=active["cadence"],
+                    )
+                ],
+                columns=EVENT_COLUMNS,
+            ),
+        ],
+        ignore_index=True,
+    )
+    outside_audit = audit_contamination(data.assignments, outside_window)
+    assert outside_audit.active_participants_without_delivery == 0
+    assert outside_audit.active_participants_without_in_window_delivery == 1
+    assert not outside_audit.active_delivery_coverage_passed
+
+
 def test_event_contract_rejects_orphans_exact_payload_duplicates_and_naive_time() -> None:
     data = generate_prospective_synthetic(_small_config())
     orphan = data.events.copy()
@@ -349,6 +403,7 @@ def test_canonical_aggregate_is_deterministic_byte_stable_and_contains_no_rows(
     assert first["data_classification"] == "synthetic"
     assert first["report_scope"] == "aggregate_only"
     assert first["population"]["eligible"] == first["population"]["itt_analyzed"]
+    assert tuple(first["quality_gates"]) == REQUIRED_QUALITY_GATES
     assert all(first["quality_gates"].values())
     assert first["pre_period_negative_control"]["passed"]
     assert first["decision"]["status"] == "continue_testing"
@@ -378,6 +433,7 @@ def test_default_fixture_honestly_returns_continue_testing() -> None:
     assert report["decision"]["status"] == "continue_testing"
     assert "primary_superiority_not_established" in report["decision"]["reasons"]
     assert all(report["quality_gates"].values())
+    assert tuple(report["quality_gates"]) == REQUIRED_QUALITY_GATES
     candidate = report["config"]["pre_specified_candidate_arm"]
     candidate_result = next(
         row

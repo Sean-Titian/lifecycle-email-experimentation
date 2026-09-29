@@ -83,22 +83,36 @@ def test_srm_audits_overall_and_each_stratification_wave_block() -> None:
     assert len(clean.by_block) == 8
     assert all(result.check.p_value_holm == pytest.approx(1.0) for result in clean.by_block)
 
-    tampered = assignments.copy()
-    changed = tampered.index[tampered["arm"].eq(HOLDOUT_ARM)]
-    tampered.loc[changed, "arm"] = "current__daily"
-    tampered.loc[changed, "content"] = "current"
-    tampered.loc[changed, "cadence"] = "daily"
-    failed = audit_sample_ratio(tampered)
-    assert not failed.passed
-    assert not failed.overall.passed
-    block = next(
-        result
-        for result in failed.by_block
-        if result.lifecycle_segment == "new"
-        and result.tenure_band == "0_30d"
-        and result.assignment_wave == "wave_01"
+
+def test_assignment_contract_rejects_block_imbalance_with_balanced_global_counts() -> None:
+    assignments = stratified_factorial_assignment(_eligible(), seed=8)
+    before = assignments["arm"].value_counts().sort_index()
+    block_groups = list(
+        assignments.groupby(
+            ["lifecycle_segment", "tenure_band", "assignment_wave"], sort=True
+        ).groups.values()
     )
-    assert not block.check.passed
+    first_block = assignments.loc[block_groups[0]]
+    second_block = assignments.loc[block_groups[1]]
+    first_index = first_block.index[first_block["arm"].eq(HOLDOUT_ARM)][0]
+    second_index = second_block.index[
+        second_block["arm"].eq("current__daily")
+    ][0]
+    tampered = assignments.copy()
+    factor_columns = ["arm", "content", "cadence"]
+    first_values = tampered.loc[first_index, factor_columns].copy()
+    tampered.loc[first_index, factor_columns] = tampered.loc[
+        second_index, factor_columns
+    ].to_numpy()
+    tampered.loc[second_index, factor_columns] = first_values.to_numpy()
+
+    pd.testing.assert_series_equal(
+        tampered["arm"].value_counts().sort_index(), before
+    )
+    with pytest.raises(ContractError, match="exact randomized block allocation"):
+        validate_assignments(tampered)
+    with pytest.raises(ContractError, match="exact randomized block allocation"):
+        audit_sample_ratio(tampered)
 
 
 def test_assignment_contract_rejects_naive_time_and_post_assignment_eligibility() -> None:
@@ -119,6 +133,12 @@ def test_assignment_requires_complete_blocks_and_exact_schema() -> None:
     eligible["post_treatment_feature"] = 1
     with pytest.raises(ContractError, match="schema mismatch"):
         stratified_factorial_assignment(eligible, seed=1)
+
+    duplicated_column = pd.concat(
+        [_eligible(), _eligible()[["participant_id"]]], axis=1
+    )
+    with pytest.raises(ContractError, match="duplicate names"):
+        stratified_factorial_assignment(duplicated_column, seed=1)
 
     non_string_id = _eligible()
     non_string_id["participant_id"] = non_string_id["participant_id"].astype("object")

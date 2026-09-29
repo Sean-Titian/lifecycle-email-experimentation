@@ -7,7 +7,12 @@ from collections.abc import Sequence
 import numpy as np
 import pandas as pd
 
-from .contracts import ContractError, require_columns, validate_unique_key
+from .contracts import (
+    ContractError,
+    parse_aware_utc_series,
+    require_columns,
+    validate_unique_key,
+)
 
 
 def ordered_funnel_membership(
@@ -36,10 +41,9 @@ def ordered_funnel_membership(
         raise ContractError("funnel events must have complete id, type, and time")
 
     work = events[[id_col, event_col, time_col]].copy()
-    try:
-        work[time_col] = pd.to_datetime(work[time_col], utc=True, errors="raise")
-    except (TypeError, ValueError) as exc:
-        raise ContractError("funnel event times must be valid timestamps") from exc
+    work[time_col] = parse_aware_utc_series(
+        work[time_col], name="funnel event times"
+    )
     work = work[work[event_col].isin(stage_list)]
 
     if cohort is None:
@@ -48,14 +52,9 @@ def ordered_funnel_membership(
         require_columns(cohort, [id_col, entry_time_col], frame_name="cohort")
         validate_unique_key(cohort, id_col, frame_name="cohort")
         population = cohort.copy()
-        try:
-            population[entry_time_col] = pd.to_datetime(
-                population[entry_time_col], utc=True, errors="raise"
-            )
-        except (TypeError, ValueError) as exc:
-            raise ContractError("cohort entry times must be valid timestamps") from exc
-        if population[entry_time_col].isna().any():
-            raise ContractError("cohort entry times must be complete")
+        population[entry_time_col] = parse_aware_utc_series(
+            population[entry_time_col], name="cohort entry times"
+        )
         unknown = int((~work[id_col].isin(population[id_col])).sum())
         if unknown:
             raise ContractError(f"funnel events contain {unknown} rows outside the cohort")
@@ -129,21 +128,23 @@ def new_link_funnel_membership(
             [True, False, 0, 1]
         ).all():
             raise ContractError(f"{column} must be complete and binary")
-    eligible = cohort.loc[
-        ~cohort[prelinked_col].astype(bool)
-        & ~cohort[preconverted_col].astype(bool)
-    ].copy()
-    eligible_ids = set(eligible[id_col])
-    eligible_events = events.loc[events[id_col].isin(eligible_ids)].copy()
-    return ordered_funnel_membership(
-        eligible_events,
+    eligible_ids = set(
+        cohort.loc[
+            ~cohort[prelinked_col].astype(bool)
+            & ~cohort[preconverted_col].astype(bool),
+            id_col,
+        ]
+    )
+    membership = ordered_funnel_membership(
+        events,
         stages,
         id_col=id_col,
         event_col=event_col,
         time_col=time_col,
-        cohort=eligible,
+        cohort=cohort,
         entry_time_col=entry_time_col,
     )
+    return membership.loc[membership[id_col].isin(eligible_ids)].copy()
 
 
 def summarize_ordered_funnel(

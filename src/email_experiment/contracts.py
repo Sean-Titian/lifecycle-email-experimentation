@@ -15,6 +15,20 @@ class ContractError(ValueError):
     """Raised when input data cannot safely support the requested analysis."""
 
 
+def require_unique_column_names(
+    frame: pd.DataFrame,
+    *,
+    frame_name: str = "frame",
+) -> None:
+    """Reject ambiguous schemas without copying column names into errors."""
+
+    duplicate_positions = int(frame.columns.duplicated(keep=False).sum())
+    if duplicate_positions:
+        raise ContractError(
+            f"{frame_name} has {duplicate_positions} column positions with duplicate names"
+        )
+
+
 def require_columns(
     frame: pd.DataFrame,
     columns: Iterable[str],
@@ -23,10 +37,82 @@ def require_columns(
 ) -> None:
     """Require a set of columns without exposing row values in errors."""
 
+    require_unique_column_names(frame, frame_name=frame_name)
     required = tuple(dict.fromkeys(columns))
     missing = [column for column in required if column not in frame.columns]
     if missing:
         raise ContractError(f"{frame_name} is missing required columns: {missing}")
+
+
+def require_exact_columns(
+    frame: pd.DataFrame,
+    expected: Iterable[str],
+    *,
+    frame_name: str = "frame",
+) -> None:
+    """Require an exact, unambiguous schema while reporting counts only."""
+
+    require_unique_column_names(frame, frame_name=frame_name)
+    expected_columns = tuple(expected)
+    missing = set(expected_columns) - set(frame.columns)
+    unexpected = set(frame.columns) - set(expected_columns)
+    if missing or unexpected:
+        raise ContractError(
+            f"{frame_name} schema mismatch: {len(missing)} missing and "
+            f"{len(unexpected)} unexpected columns"
+        )
+
+
+def parse_aware_utc_series(series: pd.Series, *, name: str) -> pd.Series:
+    """Parse timestamps, requiring an explicit timezone on every value."""
+
+    converted: list[pd.Timestamp] = []
+    invalid = 0
+    naive = 0
+    for value in series:
+        try:
+            timestamp = pd.Timestamp(value)
+        except (TypeError, ValueError, OverflowError):
+            invalid += 1
+            continue
+        if pd.isna(timestamp):
+            invalid += 1
+        elif timestamp.tzinfo is None:
+            naive += 1
+        else:
+            try:
+                converted.append(timestamp.tz_convert("UTC"))
+            except (TypeError, ValueError, OverflowError):
+                invalid += 1
+    if invalid or naive or len(converted) != len(series):
+        raise ContractError(
+            f"{name} has {invalid} invalid or missing and {naive} timezone-naive values"
+        )
+    try:
+        return pd.Series(converted, index=series.index, dtype="datetime64[ns, UTC]")
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ContractError(
+            f"{name} contains timestamps outside the supported range"
+        ) from exc
+
+
+def parse_aware_utc_timestamp(value: object, *, name: str) -> pd.Timestamp:
+    """Parse one timestamp and reject missing or timezone-naive values."""
+
+    try:
+        timestamp = pd.Timestamp(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ContractError(f"{name} must be a valid timezone-aware timestamp") from exc
+    if pd.isna(timestamp) or timestamp.tzinfo is None:
+        raise ContractError(f"{name} must be a valid timezone-aware timestamp")
+    try:
+        converted = timestamp.tz_convert("UTC")
+        normalized = pd.Series([converted], dtype="datetime64[ns, UTC]")
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ContractError(
+            f"{name} is outside the supported timestamp range"
+        ) from exc
+    return normalized.iloc[0]
 
 
 def validate_unique_key(

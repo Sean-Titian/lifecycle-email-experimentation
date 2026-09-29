@@ -29,6 +29,18 @@ from .statistics import adjust_pvalues, compare_binary_proportions
 
 DEFAULT_GUARDRAILS = ("unsubscribe_14d", "complaint_14d")
 EXPECTED_ACTIVE_CELLS = 6
+REQUIRED_QUALITY_GATES = (
+    "assignment_contract",
+    "exact_block_allocation",
+    "sample_ratio",
+    "concurrent_holdout",
+    "aligned_14_day_followup",
+    "complete_followup_and_latency_buffer",
+    "no_contamination",
+    "active_delivery_coverage",
+    "pre_period_negative_control",
+    "itt_population_preserved",
+)
 
 
 @dataclass(frozen=True)
@@ -375,8 +387,10 @@ def make_launch_decision(
     """Apply gates to a pre-specified arm without ranking observed effects.
 
     ``criteria_met`` means only that the declared synthetic decision rule was
-    met.  A missing candidate, any failed quality gate, a non-positive Holm
-    result, or either inconclusive guardrail returns ``continue_testing``.
+    met.  Every named gate in ``REQUIRED_QUALITY_GATES`` must be present; callers
+    may add stricter gates and those also participate in the decision.  A missing
+    candidate, any failed gate, a non-positive Holm result, or either
+    inconclusive guardrail returns ``continue_testing``.
     """
 
     require_columns(
@@ -405,8 +419,8 @@ def make_launch_decision(
         ],
         frame_name="guardrail results",
     )
-    if not quality_gates:
-        raise ContractError("at least one quality gate is required")
+    if not isinstance(quality_gates, Mapping):
+        raise ContractError("quality gates must be an explicit mapping")
     invalid_gates = [
         name
         for name, passed in quality_gates.items()
@@ -414,6 +428,12 @@ def make_launch_decision(
     ]
     if invalid_gates:
         raise ContractError("quality gates require non-empty names and boolean values")
+    missing_gates = set(REQUIRED_QUALITY_GATES) - set(quality_gates)
+    if missing_gates:
+        raise ContractError(
+            "quality gates are missing "
+            f"{len(missing_gates)} required decision-contract entries"
+        )
 
     primary_arms = tuple(primary_results["active_arm"])
     if len(primary_arms) != EXPECTED_ACTIVE_CELLS or len(set(primary_arms)) != len(
@@ -535,6 +555,7 @@ def make_launch_decision(
 __all__ = [
     "DEFAULT_GUARDRAILS",
     "DecisionResult",
+    "REQUIRED_QUALITY_GATES",
     "evaluate_guardrail_family",
     "evaluate_primary_family",
     "make_launch_decision",

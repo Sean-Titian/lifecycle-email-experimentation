@@ -4,6 +4,8 @@ import subprocess
 from collections.abc import Iterator
 from pathlib import Path
 
+from email_experiment.decision import REQUIRED_QUALITY_GATES
+
 REPOSITORY = Path(__file__).resolve().parents[1]
 
 PUBLIC_JSON_ALLOWLIST = {
@@ -322,8 +324,9 @@ def test_prospective_report_is_canonical_aggregate_only_when_present() -> None:
     assert report["artifact_type"] == "synthetic_prospective_factorial_benchmark"
     assert report["data_classification"] == "synthetic"
     assert report["report_scope"] == "aggregate_only"
+    assert report["schema_version"] == "1.1.0"
     assert isinstance(report.get("quality_gates"), dict)
-    assert report["quality_gates"]
+    assert set(report["quality_gates"]) == set(REQUIRED_QUALITY_GATES)
     assert all(value is True for value in report["quality_gates"].values())
 
     report_items = list(_json_items(report))

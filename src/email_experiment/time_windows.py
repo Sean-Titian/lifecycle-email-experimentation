@@ -6,17 +6,13 @@ from datetime import timedelta
 
 import pandas as pd
 
-from .contracts import ContractError, require_columns, validate_unique_key
-
-
-def _utc_timestamp_series(series: pd.Series, *, name: str) -> pd.Series:
-    try:
-        converted = pd.to_datetime(series, utc=True, errors="raise")
-    except (TypeError, ValueError) as exc:
-        raise ContractError(f"{name} must contain valid timestamps") from exc
-    if converted.isna().any():
-        raise ContractError(f"{name} must not contain missing timestamps")
-    return converted
+from .contracts import (
+    ContractError,
+    parse_aware_utc_series,
+    parse_aware_utc_timestamp,
+    require_columns,
+    validate_unique_key,
+)
 
 
 def construct_windowed_outcome(
@@ -56,21 +52,17 @@ def construct_windowed_outcome(
     duration = pd.Timedelta(window)
     if duration <= pd.Timedelta(0):
         raise ContractError("window must be positive")
-    end = pd.Timestamp(observation_end)
-    if end.tzinfo is None:
-        end = end.tz_localize("UTC")
-    else:
-        end = end.tz_convert("UTC")
+    end = parse_aware_utc_timestamp(observation_end, name="observation_end")
 
     output = assignments.copy()
-    output[assignment_time_col] = _utc_timestamp_series(
+    output[assignment_time_col] = parse_aware_utc_series(
         output[assignment_time_col], name=assignment_time_col
     )
     output["window_end"] = output[assignment_time_col] + duration
     output["followup_complete"] = output["window_end"] <= end
 
     event_work = events[[id_col, event_time_col, event_type_col]].copy()
-    event_work[event_time_col] = _utc_timestamp_series(
+    event_work[event_time_col] = parse_aware_utc_series(
         event_work[event_time_col], name=event_time_col
     )
     known_ids = set(output[id_col])

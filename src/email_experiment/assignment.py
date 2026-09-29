@@ -18,7 +18,12 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from .contracts import ContractError, validate_unique_key
+from .contracts import (
+    ContractError,
+    parse_aware_utc_series,
+    require_exact_columns,
+    validate_unique_key,
+)
 from .statistics import adjust_pvalues
 
 CONTENT_LEVELS = ("current", "challenger_a", "challenger_b")
@@ -114,21 +119,6 @@ class SampleRatioAudit:
         }
 
 
-def _require_exact_columns(
-    frame: pd.DataFrame,
-    expected: tuple[str, ...],
-    *,
-    frame_name: str,
-) -> None:
-    missing = sorted(set(expected) - set(frame.columns))
-    unexpected = sorted(set(frame.columns) - set(expected))
-    if missing or unexpected:
-        raise ContractError(
-            f"{frame_name} schema mismatch: {len(missing)} missing and "
-            f"{len(unexpected)} unexpected columns"
-        )
-
-
 def _complete_strings(series: pd.Series, *, name: str) -> pd.Series:
     if series.isna().any() or not series.map(lambda value: isinstance(value, str)).all():
         raise ContractError(f"{name} must contain complete non-empty strings")
@@ -138,39 +128,18 @@ def _complete_strings(series: pd.Series, *, name: str) -> pd.Series:
     return converted
 
 
-def _aware_utc(series: pd.Series, *, name: str) -> pd.Series:
-    """Parse timestamps while rejecting values that omit an explicit timezone."""
-
-    converted: list[pd.Timestamp] = []
-    invalid = 0
-    naive = 0
-    for value in series:
-        try:
-            timestamp = pd.Timestamp(value)
-        except (TypeError, ValueError):
-            invalid += 1
-            continue
-        if pd.isna(timestamp):
-            invalid += 1
-        elif timestamp.tzinfo is None:
-            naive += 1
-        else:
-            converted.append(timestamp.tz_convert("UTC"))
-    if invalid or naive or len(converted) != len(series):
-        raise ContractError(
-            f"{name} has {invalid} invalid or missing and {naive} timezone-naive values"
-        )
-    return pd.Series(converted, index=series.index, dtype="datetime64[ns, UTC]")
-
-
 def _validate_eligible(eligible: pd.DataFrame) -> pd.DataFrame:
-    _require_exact_columns(eligible, ELIGIBLE_COLUMNS, frame_name="eligible population")
+    require_exact_columns(eligible, ELIGIBLE_COLUMNS, frame_name="eligible population")
     validate_unique_key(eligible, "participant_id", frame_name="eligible population")
     output = eligible.loc[:, ELIGIBLE_COLUMNS].copy()
     for column in ("participant_id", *BLOCK_COLUMNS):
         output[column] = _complete_strings(output[column], name=column)
-    output["eligible_at"] = _aware_utc(output["eligible_at"], name="eligible_at")
-    output["assigned_at"] = _aware_utc(output["assigned_at"], name="assigned_at")
+    output["eligible_at"] = parse_aware_utc_series(
+        output["eligible_at"], name="eligible_at"
+    )
+    output["assigned_at"] = parse_aware_utc_series(
+        output["assigned_at"], name="assigned_at"
+    )
     after_assignment = int((output["eligible_at"] > output["assigned_at"]).sum())
     if after_assignment:
         raise ContractError(
@@ -237,9 +206,9 @@ def stratified_factorial_assignment(
 
 
 def validate_assignments(assignments: pd.DataFrame) -> pd.DataFrame:
-    """Validate the prospective assignment contract and normalize timestamps."""
+    """Validate schema, clocks, factors, and exact allocation inside every block."""
 
-    _require_exact_columns(assignments, ASSIGNMENT_COLUMNS, frame_name="assignments")
+    require_exact_columns(assignments, ASSIGNMENT_COLUMNS, frame_name="assignments")
     working = _validate_eligible(assignments.loc[:, ELIGIBLE_COLUMNS])
     for column in ("arm", "randomization_version"):
         working[column] = _complete_strings(assignments[column], name=column)
@@ -287,6 +256,24 @@ def validate_assignments(assignments: pd.DataFrame) -> pd.DataFrame:
     if invalid_probability:
         raise ContractError(
             f"assignments contain {invalid_probability} invalid expected probabilities"
+        )
+
+    block_arm_counts = (
+        working.groupby([*BLOCK_COLUMNS, "arm"], sort=True, dropna=False)
+        .size()
+        .unstack("arm", fill_value=0)
+        .reindex(columns=ALL_ARMS, fill_value=0)
+    )
+    if block_arm_counts.empty:
+        raise ContractError("assignments must contain at least one complete block")
+    exact_blocks = block_arm_counts.gt(0).all(axis=1) & block_arm_counts.nunique(
+        axis=1
+    ).eq(1)
+    invalid_blocks = int((~exact_blocks).sum())
+    if invalid_blocks:
+        raise ContractError(
+            "assignments violate exact randomized block allocation in "
+            f"{invalid_blocks} blocks"
         )
     working["content"] = content
     working["cadence"] = cadence

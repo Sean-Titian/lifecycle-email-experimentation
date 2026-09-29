@@ -1,14 +1,29 @@
 {
   "analysis_contract": {
+    "active_delivery_coverage": "minimum one correct in-window delivery per active assignment; intention-to-treat population retained",
+    "assignment_completeness": "synthetic generator reconciled internally; external ledgers require a frozen eligibility snapshot",
     "design": "stratified three-content by two-cadence factorial plus concurrent holdout",
     "estimand": "intention_to_treat",
     "estimator_note": "Unadjusted intention-to-treat cell differences with nominal large-sample intervals; exact within-block allocation balances the canonical fixture, but a deployment should pre-specify block-adjusted inference.",
+    "event_source_completeness": "synthetic generator only; external sparse feeds require independent completeness watermarks",
     "factorial_cells": 6,
     "followup_interval": "[assigned_at, assigned_at + 14 days)",
     "guardrail_multiplicity": "twelve one-sided active-vs-holdout bounds; Bonferroni family",
     "primary_endpoint": "unique subject funding within 14 days",
     "primary_multiplicity": "six active-vs-holdout comparisons; Holm FWER",
     "randomization_unit": "one fictional eligible lifecycle subject",
+    "required_quality_gates": [
+      "assignment_contract",
+      "exact_block_allocation",
+      "sample_ratio",
+      "concurrent_holdout",
+      "aligned_14_day_followup",
+      "complete_followup_and_latency_buffer",
+      "no_contamination",
+      "active_delivery_coverage",
+      "pre_period_negative_control",
+      "itt_population_preserved"
+    ],
     "total_arms": 7
   },
   "artifact_type": "synthetic_prospective_factorial_benchmark",
@@ -38,7 +53,9 @@
     "unsubscribe_noninferiority_margin": 0.005
   },
   "contamination_audit": {
+    "active_delivery_coverage_passed": true,
     "active_participants_without_delivery": 0,
+    "active_participants_without_in_window_delivery": 0,
     "affected_participants": 0,
     "cross_cadence_delivery_rows": 0,
     "cross_content_delivery_rows": 0,
@@ -711,10 +728,12 @@
     "uses_observed_control_rate": false
   },
   "quality_gates": {
+    "active_delivery_coverage": true,
     "aligned_14_day_followup": true,
     "assignment_contract": true,
     "complete_followup_and_latency_buffer": true,
     "concurrent_holdout": true,
+    "exact_block_allocation": true,
     "itt_population_preserved": true,
     "no_contamination": true,
     "pre_period_negative_control": true,
@@ -1000,5 +1019,5 @@
     }
   },
   "report_scope": "aggregate_only",
-  "schema_version": "1.0.0"
+  "schema_version": "1.1.0"
 }

@@ -10,6 +10,7 @@ from .assignment import (
 )
 from .contracts import ContractError, one_to_one_join, validate_unique_key
 from .decision import (
+    REQUIRED_QUALITY_GATES,
     DecisionResult,
     evaluate_guardrail_family,
     evaluate_primary_family,
@@ -46,7 +47,7 @@ from .synthetic import (
 )
 from .time_windows import censoring_summary, construct_windowed_outcome
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 __all__ = [
     "ACTIVE_ARMS",
@@ -57,6 +58,7 @@ __all__ = [
     "HOLDOUT_ARM",
     "ProspectiveSyntheticConfig",
     "ProspectiveSyntheticData",
+    "REQUIRED_QUALITY_GATES",
     "SyntheticExperimentConfig",
     "SyntheticExperimentData",
     "__version__",
