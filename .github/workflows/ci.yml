@@ -62,7 +62,7 @@ jobs:
             --constraint requirements-benchmark.txt dist/*.whl
           cd "${RUNNER_TEMP}"
           "${RUNNER_TEMP}/wheel-smoke/bin/email-experiment" --help
-          "${RUNNER_TEMP}/wheel-smoke/bin/python" -c "from importlib.metadata import distribution; from email_experiment import __version__; assert __version__ == '0.3.0'; assert any(path.name == 'THIRD_PARTY_NOTICES.md' for path in distribution('lifecycle-email-experimentation').files)"
+          "${RUNNER_TEMP}/wheel-smoke/bin/python" -c "from importlib.metadata import distribution; from email_experiment import __version__; assert __version__ == '0.4.0'; assert any(path.name == 'THIRD_PARTY_NOTICES.md' for path in distribution('lifecycle-email-experimentation').files)"
           "${RUNNER_TEMP}/wheel-smoke/bin/python" -m email_experiment \
             run-prospective-synthetic \
             --output "${RUNNER_TEMP}/wheel-prospective-synthetic-benchmark.json"

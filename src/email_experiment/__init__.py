@@ -35,9 +35,11 @@ from .prospective import (
 )
 from .statistics import (
     BinaryEffect,
+    BlockStandardizedEffect,
     adjust_pvalues,
     approximate_mde,
     compare_binary_proportions,
+    compare_block_standardized_binary,
     compare_experiment_groups,
 )
 from .synthetic import (
@@ -47,12 +49,13 @@ from .synthetic import (
 )
 from .time_windows import censoring_summary, construct_windowed_outcome
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 __all__ = [
     "ACTIVE_ARMS",
     "ALL_ARMS",
     "BinaryEffect",
+    "BlockStandardizedEffect",
     "ContractError",
     "DecisionResult",
     "HOLDOUT_ARM",
@@ -71,6 +74,7 @@ __all__ = [
     "build_prospective_synthetic_benchmark",
     "censoring_summary",
     "compare_binary_proportions",
+    "compare_block_standardized_binary",
     "compare_experiment_groups",
     "construct_prospective_analysis",
     "construct_windowed_outcome",

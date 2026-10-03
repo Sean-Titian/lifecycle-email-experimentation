@@ -40,8 +40,10 @@ This is the experimentation equivalent of a model card: it states what evidence 
   follow-up;
 - every assignment, exact-block, SRM, timing, known-event latency, in-window delivery,
   contamination, negative-control, and population gate passes;
-- pre-specified candidate funding difference: +1.50 pp, nominal 95% CI -0.11 to
-  +3.14 pp, Holm-adjusted p = 0.396;
+- pre-specified candidate funding difference: +1.50 pp, block-adjusted nominal 95% CI
+  -0.10 to +3.10 pp, Holm-adjusted p = 0.395;
+- primary and negative-control risk differences use block standardization with conservative
+  Neyman variance; pooled rare-event guardrail bounds remain explicitly not block-adjusted;
 - conservative 80% planning MDE: 2.78 pp from the declared 4% baseline, not the observed
   holdout result;
 - candidate unsubscribe and complaint non-inferiority both remain inconclusive;

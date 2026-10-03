@@ -8,6 +8,7 @@ import pytest
 
 from email_experiment.assignment import (
     ALL_ARMS,
+    BLOCK_COLUMNS,
     HOLDOUT_ARM,
     stratified_factorial_assignment,
 )
@@ -123,6 +124,10 @@ def test_generator_rejects_invalid_seed_and_unclippable_probabilities() -> None:
     with pytest.raises(ContractError, match="pre-period effects"):
         generate_prospective_synthetic(
             replace(_small_config(), baseline_pre_period_engagement_rate=0.01)
+        )
+    with pytest.raises(ContractError, match="at least two units per arm per block"):
+        generate_prospective_synthetic(
+            replace(_small_config(), units_per_arm_per_block=1)
         )
 
 
@@ -390,6 +395,7 @@ def test_analysis_is_invariant_to_assignment_and_event_row_order() -> None:
         .reset_index(drop=True)
     )
     pd.testing.assert_frame_equal(actual, expected)
+    assert set(BLOCK_COLUMNS) <= set(actual.columns)
 
 
 def test_canonical_aggregate_is_deterministic_byte_stable_and_contains_no_rows(
@@ -408,6 +414,24 @@ def test_canonical_aggregate_is_deterministic_byte_stable_and_contains_no_rows(
     assert first["pre_period_negative_control"]["passed"]
     assert first["decision"]["status"] == "continue_testing"
     assert first["prospective_power_plan"]["uses_observed_control_rate"] is False
+    assert first["schema_version"] == "1.2.0"
+    assert first["analysis_contract"]["primary_estimator"] == (
+        "block_standardized_difference_in_means"
+    )
+    assert first["analysis_contract"]["primary_variance"] == (
+        "stratified_neyman_conservative"
+    )
+    assert first["analysis_contract"]["guardrail_bound"].endswith(
+        "not_block_adjusted"
+    )
+    assert all(
+        row["estimator"] == "block_standardized_difference_in_means"
+        for row in first["primary_funding_family"]
+    )
+    assert all(
+        row["block_adjusted_uncertainty"] is False
+        for row in first["guardrail_noninferiority_family"]
+    )
     serialized = json.dumps(first, sort_keys=True)
     assert "synthetic_participant_" not in serialized
     assert "synthetic_event_" not in serialized
@@ -441,3 +465,17 @@ def test_default_fixture_honestly_returns_continue_testing() -> None:
         if row["active_arm"] == candidate
     )
     assert not candidate_result["superiority_pass"]
+    assert candidate_result["risk_difference"] == pytest.approx(0.015)
+    assert candidate_result["risk_difference_standard_error"] == pytest.approx(
+        0.00815551,
+        rel=1e-5,
+    )
+    assert candidate_result["risk_difference_ci_low_nominal"] == pytest.approx(
+        -0.000985,
+        abs=1e-5,
+    )
+    assert candidate_result["risk_difference_ci_high_nominal"] == pytest.approx(
+        0.030985,
+        abs=1e-5,
+    )
+    assert candidate_result["p_value_holm"] == pytest.approx(0.395273, rel=1e-5)

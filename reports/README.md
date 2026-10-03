@@ -18,12 +18,14 @@ Reports produced from the public synthetic workflow may be regenerated locally. 
 ## `prospective-synthetic-benchmark.json`
 
 This tracked, deterministic aggregate is the executable acceptance test for the seven-cell
-prospective design. Schema version 1.1.0 reports the six pre-specified funding comparisons,
-simultaneous intention-to-treat unsubscribe and complaint guardrails, exact block allocation,
-sample-ratio and contamination checks, active in-window delivery coverage, pre-period
-negative controls, follow-up and known-event latency completeness, and the resulting
-decision. It includes no synthetic rows or identifiers and makes no empirical claim about a
-real campaign or the completeness of an external sparse event feed.
+prospective design. Schema version 1.2.0 reports block-standardized primary and
+pre-period negative-control risk differences with conservative Neyman variance, the six
+pre-specified funding comparisons, pooled Newcombe-style intention-to-treat unsubscribe and
+complaint bounds that are explicitly not block-adjusted, exact block allocation,
+sample-ratio and contamination checks, active in-window delivery coverage, follow-up and
+known-event latency completeness, and the resulting decision. It includes no synthetic rows
+or identifiers and makes no empirical claim about a real campaign or the completeness of an
+external sparse event feed.
 
 CI rebuilds the report from packaged code and requires byte-for-byte equality, so changing
 the estimand, seed, configuration, or serialization cannot silently leave stale numbers in

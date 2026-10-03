@@ -35,6 +35,30 @@ class BinaryEffect:
     p_value_two_sided: float
 
 
+@dataclass(frozen=True)
+class BlockStandardizedEffect:
+    """Block-standardized difference in binary-outcome risks.
+
+    The variance is the conservative Neyman estimator for a stratified
+    randomized design.  It does not assume one common risk difference across
+    blocks and omits the unidentified finite-population treatment-effect variance term.
+    """
+
+    treatment_successes: int
+    treatment_total: int
+    control_successes: int
+    control_total: int
+    treatment_rate: float
+    control_rate: float
+    absolute_effect: float
+    absolute_standard_error: float
+    absolute_ci_low: float
+    absolute_ci_high: float
+    z_statistic: float
+    p_value_two_sided: float
+    block_count: int
+
+
 def _validate_count(successes: int, total: int, label: str) -> None:
     if isinstance(successes, bool) or isinstance(total, bool):
         raise ContractError(f"{label} counts must be integers")
@@ -144,6 +168,133 @@ def compare_binary_proportions(
         relative_risk_ci_high=relative_high,
         z_statistic=z_statistic,
         p_value_two_sided=min(1.0, max(0.0, p_value)),
+    )
+
+
+def compare_block_standardized_binary(
+    frame: pd.DataFrame,
+    *,
+    group_col: str,
+    treatment_label: object,
+    control_label: object,
+    outcome_col: str,
+    block_cols: tuple[str, ...],
+    confidence: float = 0.95,
+) -> BlockStandardizedEffect:
+    """Compare two exactly allocated arms using their declared randomization blocks.
+
+    Each block must contain the same number of treatment and control rows and at
+    least two rows per arm.  Block weights are each block's share of the two-arm
+    analysis population.  Under the repository's common seven-arm allocation
+    ratio, these are also the full-population block weights.
+    """
+
+    if isinstance(block_cols, (str, bytes)) or not isinstance(block_cols, tuple):
+        raise ContractError("block_cols must be a non-empty tuple of unique column names")
+    if (
+        not block_cols
+        or len(set(block_cols)) != len(block_cols)
+        or any(not isinstance(column, str) or not column for column in block_cols)
+        or group_col == outcome_col
+        or group_col in block_cols
+        or outcome_col in block_cols
+    ):
+        raise ContractError("block_cols must be a non-empty tuple of unique column names")
+    if treatment_label == control_label:
+        raise ContractError("treatment and control labels must be distinct")
+    if not 0.0 < confidence < 1.0:
+        raise ContractError("confidence must be between 0 and 1")
+
+    require_columns(
+        frame,
+        [group_col, outcome_col, *block_cols],
+        frame_name="block-standardized binary data",
+    )
+    if frame.empty:
+        raise ContractError("block-standardized binary data must contain rows")
+    if frame[list(block_cols)].isna().any().any():
+        raise ContractError("randomization block labels must be complete")
+    for column in block_cols:
+        values = frame[column]
+        if not values.map(lambda value: isinstance(value, str) and bool(value.strip())).all():
+            raise ContractError("randomization block labels must be non-empty strings")
+
+    observed_groups = set(frame[group_col])
+    if observed_groups != {treatment_label, control_label}:
+        raise ContractError("block-standardized comparison requires exactly two declared arms")
+    working = frame.loc[:, [*block_cols, group_col, outcome_col]].copy()
+    working[outcome_col] = validate_binary(
+        working[outcome_col], name=outcome_col, allow_missing=False
+    ).astype(int)
+
+    grouped = list(working.groupby(list(block_cols), sort=True, dropna=False))
+    if not grouped:
+        raise ContractError("block-standardized comparison requires at least one block")
+    invalid_blocks = 0
+    too_small_blocks = 0
+    for _, block in grouped:
+        counts = block[group_col].value_counts()
+        treatment_n = int(counts.get(treatment_label, 0))
+        control_n = int(counts.get(control_label, 0))
+        if treatment_n != control_n or treatment_n == 0:
+            invalid_blocks += 1
+        elif treatment_n < 2:
+            too_small_blocks += 1
+    if invalid_blocks:
+        raise ContractError(
+            "block-standardized comparison violates exact two-arm allocation in "
+            f"{invalid_blocks} blocks"
+        )
+    if too_small_blocks:
+        raise ContractError(
+            "block-standardized comparison has fewer than two units per arm in "
+            f"{too_small_blocks} blocks"
+        )
+
+    total_rows = len(working)
+    treatment_rate = 0.0
+    control_rate = 0.0
+    variance = 0.0
+    for _, block in grouped:
+        treatment = block.loc[block[group_col] == treatment_label, outcome_col]
+        control = block.loc[block[group_col] == control_label, outcome_col]
+        weight = len(block) / total_rows
+        treatment_rate += weight * float(treatment.mean())
+        control_rate += weight * float(control.mean())
+        variance += weight**2 * (
+            float(treatment.var(ddof=1)) / len(treatment)
+            + float(control.var(ddof=1)) / len(control)
+        )
+
+    if not np.isfinite(variance) or variance <= 0.0:
+        raise ContractError(
+            "block-standardized comparison requires positive finite Neyman variance"
+        )
+    standard_error = sqrt(variance)
+    difference = treatment_rate - control_rate
+    z_statistic = difference / standard_error
+    p_value = erfc(abs(z_statistic) / sqrt(2.0))
+    alpha = 1.0 - confidence
+    z_critical = NormalDist().inv_cdf(1.0 - alpha / 2.0)
+    ci_low = max(-1.0, difference - z_critical * standard_error)
+    ci_high = min(1.0, difference + z_critical * standard_error)
+
+    treatment_rows = working.loc[working[group_col] == treatment_label, outcome_col]
+    control_rows = working.loc[working[group_col] == control_label, outcome_col]
+    return BlockStandardizedEffect(
+        treatment_successes=int(treatment_rows.sum()),
+        treatment_total=int(treatment_rows.size),
+        control_successes=int(control_rows.sum()),
+        control_total=int(control_rows.size),
+        treatment_rate=treatment_rate,
+        control_rate=control_rate,
+        absolute_effect=difference,
+        absolute_standard_error=standard_error,
+        absolute_ci_low=ci_low,
+        absolute_ci_high=ci_high,
+        z_statistic=z_statistic,
+        p_value_two_sided=min(1.0, max(0.0, p_value)),
+        block_count=len(grouped),
     )
 
 

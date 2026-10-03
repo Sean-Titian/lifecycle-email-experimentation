@@ -12,23 +12,36 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass
 from itertools import product
-from math import isfinite, sqrt
+from math import erfc, isfinite, sqrt
 from statistics import NormalDist
 from typing import Literal
 
 import numpy as np
 import pandas as pd
 
+from .assignment import BLOCK_COLUMNS
 from .contracts import (
     ContractError,
     require_columns,
     validate_binary,
     validate_unique_key,
 )
-from .statistics import adjust_pvalues, compare_binary_proportions
+from .statistics import (
+    adjust_pvalues,
+    compare_binary_proportions,
+    compare_block_standardized_binary,
+)
 
 DEFAULT_GUARDRAILS = ("unsubscribe_14d", "complaint_14d")
 EXPECTED_ACTIVE_CELLS = 6
+BLOCK_STANDARDIZED_ESTIMATOR = "block_standardized_difference_in_means"
+STRATIFIED_NEYMAN_VARIANCE = "stratified_neyman_conservative"
+NOMINAL_NORMAL_INTERVAL = "nominal_normal_not_simultaneous"
+POOLED_PRIMARY_ESTIMATOR = "pooled_difference_in_proportions"
+POOLED_PRIMARY_UNCERTAINTY = "pooled_score_and_newcombe_not_block_adjusted"
+POOLED_GUARDRAIL_POINT = "pooled_difference_in_proportions"
+POOLED_GUARDRAIL_BOUND = "pooled_newcombe_style_bonferroni_not_block_adjusted"
+CANONICAL_BLOCK_DEFINITION = "|".join(BLOCK_COLUMNS)
 REQUIRED_QUALITY_GATES = (
     "assignment_contract",
     "exact_block_allocation",
@@ -149,16 +162,25 @@ def evaluate_primary_family(
     outcome_col: str = "funded_14d",
     holdout_arm: str = "holdout",
     alpha: float = 0.05,
+    block_cols: tuple[str, ...] | None = None,
 ) -> pd.DataFrame:
     """Evaluate six active-cell versus holdout funding ITT contrasts.
 
     Risk difference is the decision-scale estimand and relative risk is
-    supplementary.  The six two-sided score-test p-values form one Holm FWER
-    family.  Nominal confidence intervals are retained as descriptive
-    uncertainty and are labeled accordingly.
+    supplementary.  When ``block_cols`` is explicit, risk differences use the
+    design-aligned block-standardized estimator with conservative Neyman
+    variance; otherwise the legacy pooled comparison is retained for backwards-
+    compatible descriptive use.  The six two-sided p-values form one Holm FWER
+    family.  Nominal confidence intervals are not simultaneous.
     """
 
     family_alpha = _validate_alpha(alpha)
+    if block_cols is not None:
+        require_columns(
+            frame,
+            block_cols,
+            frame_name="factorial analysis data",
+        )
     working, active_arms = _validate_factorial_frame(
         frame,
         id_col=id_col,
@@ -172,12 +194,49 @@ def evaluate_primary_family(
     rows: list[dict[str, object]] = []
     for active_arm in active_arms:
         active = working.loc[working[arm_col] == active_arm, outcome_col]
-        effect = compare_binary_proportions(
+        marginal_effect = compare_binary_proportions(
             int(active.sum()),
             int(active.size),
             int(holdout.sum()),
             int(holdout.size),
         )
+        if block_cols is None:
+            treatment_rate = marginal_effect.treatment_rate
+            control_rate = marginal_effect.control_rate
+            risk_difference = marginal_effect.absolute_effect
+            standard_error: float | None = None
+            ci_low = marginal_effect.absolute_ci_low
+            ci_high = marginal_effect.absolute_ci_high
+            p_value = marginal_effect.p_value_two_sided
+            estimator = POOLED_PRIMARY_ESTIMATOR
+            variance_estimator = POOLED_PRIMARY_UNCERTAINTY
+            interval_method = "nominal_newcombe_not_simultaneous"
+            block_definition: str | None = None
+            block_count = 0
+        else:
+            pair = working.loc[
+                working[arm_col].isin([active_arm, holdout_arm])
+            ].copy()
+            block_effect = compare_block_standardized_binary(
+                pair,
+                group_col=arm_col,
+                treatment_label=active_arm,
+                control_label=holdout_arm,
+                outcome_col=outcome_col,
+                block_cols=block_cols,
+            )
+            treatment_rate = block_effect.treatment_rate
+            control_rate = block_effect.control_rate
+            risk_difference = block_effect.absolute_effect
+            standard_error = block_effect.absolute_standard_error
+            ci_low = block_effect.absolute_ci_low
+            ci_high = block_effect.absolute_ci_high
+            p_value = block_effect.p_value_two_sided
+            estimator = BLOCK_STANDARDIZED_ESTIMATOR
+            variance_estimator = STRATIFIED_NEYMAN_VARIANCE
+            interval_method = NOMINAL_NORMAL_INTERVAL
+            block_definition = "|".join(block_cols)
+            block_count = block_effect.block_count
         rows.append(
             {
                 "family": "primary_funding_itt",
@@ -185,19 +244,28 @@ def evaluate_primary_family(
                 "outcome": outcome_col,
                 "active_arm": active_arm,
                 "comparator_arm": holdout_arm,
-                "active_successes": effect.treatment_successes,
-                "active_total": effect.treatment_total,
-                "holdout_successes": effect.control_successes,
-                "holdout_total": effect.control_total,
-                "active_rate": effect.treatment_rate,
-                "holdout_rate": effect.control_rate,
-                "risk_difference": effect.absolute_effect,
-                "risk_difference_ci_low_nominal": effect.absolute_ci_low,
-                "risk_difference_ci_high_nominal": effect.absolute_ci_high,
-                "relative_risk": effect.relative_risk,
-                "relative_risk_ci_low_nominal": effect.relative_risk_ci_low,
-                "relative_risk_ci_high_nominal": effect.relative_risk_ci_high,
-                "p_value_two_sided": effect.p_value_two_sided,
+                "active_successes": marginal_effect.treatment_successes,
+                "active_total": marginal_effect.treatment_total,
+                "holdout_successes": marginal_effect.control_successes,
+                "holdout_total": marginal_effect.control_total,
+                "active_rate": treatment_rate,
+                "holdout_rate": control_rate,
+                "risk_difference": risk_difference,
+                "risk_difference_standard_error": standard_error,
+                "risk_difference_ci_low_nominal": ci_low,
+                "risk_difference_ci_high_nominal": ci_high,
+                "relative_risk": marginal_effect.relative_risk,
+                "relative_risk_ci_low_nominal": marginal_effect.relative_risk_ci_low,
+                "relative_risk_ci_high_nominal": marginal_effect.relative_risk_ci_high,
+                "relative_risk_interval_method": (
+                    "pooled_log_wald_supplementary_not_block_adjusted"
+                ),
+                "p_value_two_sided": p_value,
+                "estimator": estimator,
+                "variance_estimator": variance_estimator,
+                "interval_method": interval_method,
+                "block_columns": block_definition,
+                "block_count": block_count,
             }
         )
 
@@ -364,6 +432,9 @@ def evaluate_guardrail_family(
                     "holdout_rate": effect.control_rate,
                     "risk_difference": effect.absolute_effect,
                     "relative_risk_supplementary": effect.relative_risk,
+                    "point_estimator": POOLED_GUARDRAIL_POINT,
+                    "uncertainty_method": POOLED_GUARDRAIL_BOUND,
+                    "block_adjusted_uncertainty": False,
                     "noninferiority_margin": margin,
                     "margin_source": "caller_supplied_pre_specified",
                     "simultaneous_one_sided_upper_bound": upper_bound,
@@ -398,10 +469,19 @@ def make_launch_decision(
         [
             "active_arm",
             "risk_difference",
+            "risk_difference_standard_error",
+            "risk_difference_ci_low_nominal",
+            "risk_difference_ci_high_nominal",
+            "p_value_two_sided",
             "p_value_holm",
             "family_size",
             "family_alpha",
             "superiority_pass",
+            "estimator",
+            "variance_estimator",
+            "interval_method",
+            "block_columns",
+            "block_count",
         ],
         frame_name="primary results",
     )
@@ -416,6 +496,9 @@ def make_launch_decision(
             "family_alpha",
             "bonferroni_alpha_each",
             "noninferiority_pass",
+            "point_estimator",
+            "uncertainty_method",
+            "block_adjusted_uncertainty",
         ],
         frame_name="guardrail results",
     )
@@ -444,8 +527,35 @@ def make_launch_decision(
         raise ContractError("primary pass indicators must be complete")
     if not pd.api.types.is_bool_dtype(primary_results["superiority_pass"]):
         raise ContractError("primary pass indicators must be boolean")
+    if primary_results["estimator"].isna().any():
+        raise ContractError("primary method metadata must be complete")
+    if not primary_results["estimator"].eq(BLOCK_STANDARDIZED_ESTIMATOR).all():
+        raise ContractError("launch decisions require the block-standardized primary estimator")
+    primary_method_columns = [
+        "variance_estimator",
+        "interval_method",
+        "block_columns",
+    ]
+    if primary_results[primary_method_columns].isna().any().any():
+        raise ContractError("primary method metadata must be complete")
+    if not primary_results["variance_estimator"].eq(STRATIFIED_NEYMAN_VARIANCE).all():
+        raise ContractError("launch decisions require conservative stratified Neyman variance")
+    if not primary_results["interval_method"].eq(NOMINAL_NORMAL_INTERVAL).all():
+        raise ContractError("primary interval metadata is inconsistent")
+    if not primary_results["block_columns"].eq(CANONICAL_BLOCK_DEFINITION).all():
+        raise ContractError("primary results use the wrong randomization-block definition")
     primary_numeric = primary_results[
-        ["risk_difference", "p_value_holm", "family_size", "family_alpha"]
+        [
+            "risk_difference",
+            "risk_difference_standard_error",
+            "risk_difference_ci_low_nominal",
+            "risk_difference_ci_high_nominal",
+            "p_value_two_sided",
+            "p_value_holm",
+            "family_size",
+            "family_alpha",
+            "block_count",
+        ]
     ].apply(pd.to_numeric, errors="coerce")
     if primary_numeric.isna().any().any() or not np.isfinite(primary_numeric).all().all():
         raise ContractError("primary decision fields must be finite numbers")
@@ -457,6 +567,64 @@ def make_launch_decision(
         raise ContractError("primary results must use Holm FWER alpha 0.05")
     if not primary_numeric["p_value_holm"].between(0.0, 1.0).all():
         raise ContractError("Holm p-values must be between zero and one")
+    if not primary_numeric["p_value_two_sided"].between(0.0, 1.0).all():
+        raise ContractError("primary raw p-values must be between zero and one")
+    if not primary_numeric["risk_difference_standard_error"].gt(0.0).all():
+        raise ContractError("primary standard errors must be positive")
+    if not primary_numeric["block_count"].gt(0).all() or not np.isclose(
+        primary_numeric["block_count"],
+        np.round(primary_numeric["block_count"]),
+        rtol=0.0,
+        atol=0.0,
+    ).all():
+        raise ContractError("primary block counts must be positive integers")
+    if primary_numeric["block_count"].nunique() != 1:
+        raise ContractError("primary comparisons must use the same randomization blocks")
+    expected_raw_p = primary_numeric.apply(
+        lambda row: erfc(
+            abs(row["risk_difference"] / row["risk_difference_standard_error"])
+            / sqrt(2.0)
+        ),
+        axis=1,
+    )
+    if not np.isclose(
+        primary_numeric["p_value_two_sided"],
+        expected_raw_p,
+        rtol=1e-12,
+        atol=1e-15,
+    ).all():
+        raise ContractError("primary raw p-values are inconsistent with the estimator")
+    expected_holm = adjust_pvalues(primary_numeric["p_value_two_sided"], "holm")
+    if not np.isclose(
+        primary_numeric["p_value_holm"],
+        expected_holm,
+        rtol=1e-12,
+        atol=1e-15,
+    ).all():
+        raise ContractError("primary Holm p-values are inconsistent with the family")
+    z_critical = NormalDist().inv_cdf(0.975)
+    expected_ci_low = np.maximum(
+        -1.0,
+        primary_numeric["risk_difference"]
+        - z_critical * primary_numeric["risk_difference_standard_error"],
+    )
+    expected_ci_high = np.minimum(
+        1.0,
+        primary_numeric["risk_difference"]
+        + z_critical * primary_numeric["risk_difference_standard_error"],
+    )
+    if not np.isclose(
+        primary_numeric["risk_difference_ci_low_nominal"],
+        expected_ci_low,
+        rtol=1e-12,
+        atol=1e-15,
+    ).all() or not np.isclose(
+        primary_numeric["risk_difference_ci_high_nominal"],
+        expected_ci_high,
+        rtol=1e-12,
+        atol=1e-15,
+    ).all():
+        raise ContractError("primary confidence intervals are inconsistent with the estimator")
     expected_primary_pass = (
         primary_numeric["p_value_holm"] < primary_numeric["family_alpha"]
     ) & (primary_numeric["risk_difference"] > 0.0)
@@ -477,6 +645,21 @@ def make_launch_decision(
         raise ContractError("guardrail pass indicators must be complete")
     if not pd.api.types.is_bool_dtype(guardrail_results["noninferiority_pass"]):
         raise ContractError("guardrail pass indicators must be boolean")
+    guardrail_method_columns = [
+        "point_estimator",
+        "uncertainty_method",
+        "block_adjusted_uncertainty",
+    ]
+    if guardrail_results[guardrail_method_columns].isna().any().any():
+        raise ContractError("guardrail method metadata must be complete")
+    if not guardrail_results["point_estimator"].eq(POOLED_GUARDRAIL_POINT).all():
+        raise ContractError("guardrail point-estimator metadata is inconsistent")
+    if not guardrail_results["uncertainty_method"].eq(POOLED_GUARDRAIL_BOUND).all():
+        raise ContractError("guardrail uncertainty metadata is inconsistent")
+    if not pd.api.types.is_bool_dtype(guardrail_results["block_adjusted_uncertainty"]):
+        raise ContractError("guardrail block-adjustment indicators must be boolean")
+    if guardrail_results["block_adjusted_uncertainty"].any():
+        raise ContractError("guardrail uncertainty must remain explicitly unadjusted")
     guardrail_numeric = guardrail_results[
         [
             "noninferiority_margin",

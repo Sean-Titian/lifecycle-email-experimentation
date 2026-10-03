@@ -5,6 +5,7 @@ from collections.abc import Mapping
 import pandas as pd
 import pytest
 
+from email_experiment.assignment import BLOCK_COLUMNS
 from email_experiment.contracts import ContractError
 from email_experiment.decision import (
     REQUIRED_QUALITY_GATES,
@@ -30,6 +31,8 @@ def _factorial_frame(
     unsubscribed: Mapping[str, int] | None = None,
     complained: Mapping[str, int] | None = None,
 ) -> pd.DataFrame:
+    if total_per_arm % 2:
+        raise AssertionError("decision fixture requires an even number per arm")
     arms = [("holdout", None, None), *ACTIVE_CELLS]
     funded = dict(funded or {})
     unsubscribed = dict(unsubscribed or {})
@@ -57,6 +60,10 @@ def _factorial_frame(
                     "arm": arm,
                     "content": content,
                     "cadence": cadence,
+                    "lifecycle_segment": ["new"] * (total_per_arm // 2)
+                    + ["established"] * (total_per_arm // 2),
+                    "tenure_band": ["0_30d"] * total_per_arm,
+                    "assignment_wave": ["wave_01"] * total_per_arm,
                     "funded_14d": [1] * funding_successes
                     + [0] * (total_per_arm - funding_successes),
                     "unsubscribe_14d": [1] * unsubscribe_successes
@@ -80,6 +87,10 @@ def _quality_gates(**overrides: bool) -> dict[str, bool]:
     return gates
 
 
+def _block_primary(frame: pd.DataFrame, **kwargs: object) -> pd.DataFrame:
+    return evaluate_primary_family(frame, block_cols=BLOCK_COLUMNS, **kwargs)
+
+
 def test_primary_family_is_six_cell_vs_holdout_holm_family() -> None:
     frame = _factorial_frame(
         funded={
@@ -88,25 +99,53 @@ def test_primary_family_is_six_cell_vs_holdout_holm_family() -> None:
             "content_c_daily": 800,
         }
     )
-    result = evaluate_primary_family(frame)
+    result = _block_primary(frame)
 
     assert len(result) == 6
     assert set(result["comparator_arm"]) == {"holdout"}
     assert set(result["family_size"]) == {6}
     assert set(result["family_alpha"]) == {0.05}
+    assert set(result["estimator"]) == {"block_standardized_difference_in_means"}
+    assert set(result["variance_estimator"]) == {"stratified_neyman_conservative"}
+    assert set(result["block_count"]) == {2}
+    assert result["risk_difference_standard_error"].gt(0).all()
     assert (result["p_value_holm"] >= result["p_value_two_sided"]).all()
     candidate = result.set_index("active_arm").loc["content_a_daily"]
     assert candidate["risk_difference"] == pytest.approx(0.05)
     assert candidate["relative_risk"] == pytest.approx(2.0)
     assert bool(candidate["superiority_pass"])
 
+    pooled = evaluate_primary_family(frame)
+    assert candidate["risk_difference"] == pytest.approx(
+        pooled.set_index("active_arm").loc["content_a_daily", "risk_difference"]
+    )
+
 
 def test_primary_family_is_row_order_invariant() -> None:
     frame = _factorial_frame(total_per_arm=200)
-    expected = evaluate_primary_family(frame)
+    expected = _block_primary(frame)
     shuffled = frame.sample(frac=1.0, random_state=77).reset_index(drop=True)
-    actual = evaluate_primary_family(shuffled)
+    actual = _block_primary(shuffled)
     pd.testing.assert_frame_equal(actual, expected)
+
+
+def test_block_primary_rejects_cross_block_swaps_with_balanced_global_counts() -> None:
+    frame = _factorial_frame(total_per_arm=20)
+    changed = frame.copy()
+    first_a = changed.index[
+        (changed["arm"] == "content_a_daily")
+        & (changed["lifecycle_segment"] == "new")
+    ][0]
+    first_b = changed.index[
+        (changed["arm"] == "content_b_daily")
+        & (changed["lifecycle_segment"] == "established")
+    ][0]
+    changed.loc[first_a, "lifecycle_segment"] = "established"
+    changed.loc[first_b, "lifecycle_segment"] = "new"
+
+    assert changed["arm"].value_counts().to_dict() == frame["arm"].value_counts().to_dict()
+    with pytest.raises(ContractError, match="exact two-arm allocation"):
+        _block_primary(changed)
 
 
 def test_factorial_contract_rejects_nonempty_holdout_factors_and_duplicate_units() -> None:
@@ -114,25 +153,25 @@ def test_factorial_contract_rejects_nonempty_holdout_factors_and_duplicate_units
     invalid_holdout = frame.copy()
     invalid_holdout.loc[invalid_holdout["arm"] == "holdout", "content"] = "content_a"
     with pytest.raises(ContractError, match="holdout rows"):
-        evaluate_primary_family(invalid_holdout)
+        _block_primary(invalid_holdout)
 
     duplicate = pd.concat([frame, frame.iloc[[0]]], ignore_index=True)
     with pytest.raises(ContractError, match="duplicate keys"):
-        evaluate_primary_family(duplicate)
+        _block_primary(duplicate)
 
 
 def test_factorial_contract_requires_exact_three_by_two_active_cells() -> None:
     frame = _factorial_frame(total_per_arm=20)
     reduced = frame.loc[frame["arm"] != "content_c_twice_weekly"].copy()
     with pytest.raises(ContractError, match="six active arms"):
-        evaluate_primary_family(reduced)
+        _block_primary(reduced)
 
     bad_mapping = frame.copy()
     bad_mapping.loc[
         bad_mapping["arm"] == "content_c_twice_weekly", "cadence"
     ] = "daily"
     with pytest.raises(ContractError, match="factorial cell"):
-        evaluate_primary_family(bad_mapping)
+        _block_primary(bad_mapping)
 
 
 def test_guardrails_use_itt_denominators_and_twelve_way_bonferroni_bounds() -> None:
@@ -210,7 +249,7 @@ def test_guardrail_over_margin_is_harmful_and_missing_margin_fails_closed() -> N
 def test_invalid_alpha_fails_with_a_contract_error() -> None:
     frame = _factorial_frame(total_per_arm=20)
     with pytest.raises(ContractError, match="alpha must be a finite number"):
-        evaluate_primary_family(frame, alpha="not-a-number")  # type: ignore[arg-type]
+        _block_primary(frame, alpha="not-a-number")
 
 
 def test_decision_never_selects_the_observed_largest_arm() -> None:
@@ -221,7 +260,7 @@ def test_decision_never_selects_the_observed_largest_arm() -> None:
             "content_c_daily": 800,
         }
     )
-    primary = evaluate_primary_family(frame)
+    primary = _block_primary(frame)
     guardrails = evaluate_guardrail_family(frame, margins=_margins())
 
     no_candidate = make_launch_decision(
@@ -250,7 +289,7 @@ def test_any_failed_quality_or_guardrail_gate_means_continue_testing() -> None:
         funded={"holdout": 250, "content_a_daily": 500},
         unsubscribed={"holdout": 50, "content_a_daily": 150},
     )
-    primary = evaluate_primary_family(frame)
+    primary = _block_primary(frame)
     guardrails = evaluate_guardrail_family(frame, margins=_margins())
 
     result = make_launch_decision(
@@ -269,7 +308,7 @@ def test_any_failed_quality_or_guardrail_gate_means_continue_testing() -> None:
 
 def test_decision_requires_every_named_quality_gate_and_boolean_values() -> None:
     frame = _factorial_frame(total_per_arm=100)
-    primary = evaluate_primary_family(frame)
+    primary = _block_primary(frame)
     guardrails = evaluate_guardrail_family(
         frame,
         margins={"unsubscribe_14d": 0.5, "complaint_14d": 0.5},
@@ -293,11 +332,27 @@ def test_decision_requires_every_named_quality_gate_and_boolean_values() -> None
         )
 
 
+def test_decision_rejects_unadjusted_primary_results() -> None:
+    frame = _factorial_frame(total_per_arm=100)
+    pooled = evaluate_primary_family(frame)
+    guardrails = evaluate_guardrail_family(
+        frame,
+        margins={"unsubscribe_14d": 0.5, "complaint_14d": 0.5},
+    )
+    with pytest.raises(ContractError, match="block-standardized primary"):
+        make_launch_decision(
+            pooled,
+            guardrails,
+            _quality_gates(),
+            candidate_arm="content_a_daily",
+        )
+
+
 def test_decision_allows_stricter_extra_quality_gates() -> None:
     frame = _factorial_frame(
         funded={"holdout": 250, "content_a_daily": 500}
     )
-    primary = evaluate_primary_family(frame)
+    primary = _block_primary(frame)
     guardrails = evaluate_guardrail_family(frame, margins=_margins())
 
     passed = make_launch_decision(
@@ -322,7 +377,7 @@ def test_each_required_quality_gate_is_rollout_blocking() -> None:
     frame = _factorial_frame(
         funded={"holdout": 250, "content_a_daily": 500}
     )
-    primary = evaluate_primary_family(frame)
+    primary = _block_primary(frame)
     guardrails = evaluate_guardrail_family(frame, margins=_margins())
 
     for gate in REQUIRED_QUALITY_GATES:
@@ -339,7 +394,7 @@ def test_each_required_quality_gate_is_rollout_blocking() -> None:
 
 def test_decision_rejects_tampered_pass_indicators() -> None:
     frame = _factorial_frame(total_per_arm=5_000)
-    primary = evaluate_primary_family(frame)
+    primary = _block_primary(frame)
     guardrails = evaluate_guardrail_family(frame, margins=_margins())
 
     bad_primary = primary.copy()
@@ -358,6 +413,74 @@ def test_decision_rejects_tampered_pass_indicators() -> None:
         make_launch_decision(
             primary,
             bad_guardrail,
+            _quality_gates(),
+            candidate_arm="content_a_daily",
+        )
+
+    bad_estimator = primary.copy()
+    bad_estimator["estimator"] = "pooled_difference_in_proportions"
+    with pytest.raises(ContractError, match="block-standardized primary"):
+        make_launch_decision(
+            bad_estimator,
+            guardrails,
+            _quality_gates(),
+            candidate_arm="content_a_daily",
+        )
+
+    bad_p_value = primary.copy()
+    bad_p_value.loc[bad_p_value.index[0], "p_value_two_sided"] = 0.999
+    with pytest.raises(ContractError, match="raw p-values"):
+        make_launch_decision(
+            bad_p_value,
+            guardrails,
+            _quality_gates(),
+            candidate_arm="content_a_daily",
+        )
+
+
+@pytest.mark.parametrize(
+    "column",
+    ["estimator", "variance_estimator", "interval_method", "block_columns"],
+)
+def test_decision_rejects_missing_primary_method_metadata(column: str) -> None:
+    frame = _factorial_frame(total_per_arm=100)
+    primary = _block_primary(frame)
+    guardrails = evaluate_guardrail_family(frame, margins=_margins())
+    invalid = primary.copy()
+    invalid[column] = invalid[column].astype("string")
+    invalid.loc[invalid.index[0], column] = pd.NA
+
+    with pytest.raises(ContractError, match="primary method metadata must be complete"):
+        make_launch_decision(
+            invalid,
+            guardrails,
+            _quality_gates(),
+            candidate_arm="content_a_daily",
+        )
+
+
+@pytest.mark.parametrize(
+    ("column", "dtype"),
+    [
+        ("point_estimator", "string"),
+        ("uncertainty_method", "string"),
+        ("block_adjusted_uncertainty", "boolean"),
+    ],
+)
+def test_decision_rejects_missing_guardrail_method_metadata(
+    column: str, dtype: str
+) -> None:
+    frame = _factorial_frame(total_per_arm=100)
+    primary = _block_primary(frame)
+    guardrails = evaluate_guardrail_family(frame, margins=_margins())
+    invalid = guardrails.copy()
+    invalid[column] = invalid[column].astype(dtype)
+    invalid.loc[invalid.index[0], column] = pd.NA
+
+    with pytest.raises(ContractError, match="guardrail method metadata must be complete"):
+        make_launch_decision(
+            primary,
+            invalid,
             _quality_gates(),
             candidate_arm="content_a_daily",
         )

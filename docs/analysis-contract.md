@@ -87,6 +87,15 @@ levels and a concurrent holdout. Its six active-cell-versus-holdout 14-day fundi
 differences are one pre-specified primary family under Holm family-wise error control at
 α = 0.05. Every randomized eligible participant is analyzed in the assigned cell.
 
+Primary and pre-period negative-control risk differences are standardized across the
+declared lifecycle-segment, tenure-band, and assignment-wave randomization blocks. Block
+weights are each block's share of the analysis population. Uncertainty uses the conservative
+Neyman variance without a common-effect assumption; nominal normal intervals are not
+simultaneous. Exact allocation and at least two units per arm are required inside every
+block, and a non-positive or non-finite variance stops the decision. Under exact common
+allocation, the block-standardized point estimate equals the pooled risk difference.
+Relative-risk intervals remain pooled supplementary context and are not decision inputs.
+
 Unsubscribe and complaint are separate outcomes but one simultaneously covered family of 12
 active-cell-versus-holdout comparisons. Each adverse risk difference receives a
 simultaneous one-sided upper confidence bound using Bonferroni allocation. Non-inferiority
@@ -94,6 +103,11 @@ requires that bound to be strictly below the declared absolute margin; `p > 0.05
 safety result. All 12 are disclosed, while the two bounds for the candidate named before
 outcomes are the rollout gates. Pooled factor contrasts and interactions are not used to
 rescue a null primary cell family.
+
+The rare-event guardrail point estimates and one-sided bounds remain pooled. Their
+Newcombe-style Bonferroni bounds are explicitly not block-adjusted because zero-event block
+cells make a naive stratified Wald bound unsafe. This limitation is carried into the report
+rather than hidden behind the block-adjusted primary analysis.
 
 ## 5. Data-quality gates
 

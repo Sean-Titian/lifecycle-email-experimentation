@@ -19,6 +19,7 @@ import pandas as pd
 from .assignment import (
     ACTIVE_ARMS,
     ALL_ARMS,
+    BLOCK_COLUMNS,
     CADENCE_LEVELS,
     CONTENT_LEVELS,
     HOLDOUT_ARM,
@@ -152,8 +153,11 @@ def _validate_config(config: ProspectiveSyntheticConfig) -> None:
     for name, value in integer_fields.items():
         if isinstance(value, bool) or not isinstance(value, (int, np.integer)):
             raise ContractError(f"{name} must be an integer")
-    if config.units_per_arm_per_block < 1 or config.assignment_waves < 1:
-        raise ContractError("the prospective design requires positive block and wave sizes")
+    if config.units_per_arm_per_block < 2 or config.assignment_waves < 1:
+        raise ContractError(
+            "the prospective design requires at least two units per arm per block "
+            "and positive wave counts"
+        )
     if config.seed < 0:
         raise ContractError("seed must be non-negative")
     if config.days_between_waves < 1:
@@ -668,7 +672,9 @@ def construct_prospective_analysis(
     events = validate_events(assignments, data.events)
     freeze = parse_aware_utc_timestamp(data.data_freeze_at, name="data_freeze_at")
     available = events.loc[events["available_at"] <= freeze].copy()
-    analysis = assignments.loc[:, ["participant_id", "arm", "content", "cadence"]].copy()
+    analysis = assignments.loc[
+        :, ["participant_id", *BLOCK_COLUMNS, "arm", "content", "cadence"]
+    ].copy()
     for outcome_column, event_type in OUTCOME_EVENT_MAP.items():
         outcome = construct_windowed_outcome(
             assignments,
@@ -746,7 +752,11 @@ def build_prospective_synthetic_benchmark(
         followup_days=config.followup_days,
         latency_buffer_hours=config.latency_buffer_hours,
     )
-    primary = evaluate_primary_family(analysis, alpha=config.family_alpha)
+    primary = evaluate_primary_family(
+        analysis,
+        alpha=config.family_alpha,
+        block_cols=BLOCK_COLUMNS,
+    )
     guardrails = evaluate_guardrail_family(
         analysis,
         margins={
@@ -759,6 +769,7 @@ def build_prospective_synthetic_benchmark(
         analysis,
         outcome_col="pre_period_engaged",
         alpha=config.family_alpha,
+        block_cols=BLOCK_COLUMNS,
     )
     negative_control = negative_control.copy()
     negative_control["family"] = "pre_period_negative_control"
@@ -806,7 +817,7 @@ def build_prospective_synthetic_benchmark(
     )
 
     report: dict[str, object] = {
-        "schema_version": "1.1.0",
+        "schema_version": "1.2.0",
         "artifact_type": "synthetic_prospective_factorial_benchmark",
         "data_classification": "synthetic",
         "report_scope": "aggregate_only",
@@ -827,6 +838,15 @@ def build_prospective_synthetic_benchmark(
             "guardrail_multiplicity": (
                 "twelve one-sided active-vs-holdout bounds; Bonferroni family"
             ),
+            "block_columns": list(BLOCK_COLUMNS),
+            "primary_estimator": "block_standardized_difference_in_means",
+            "primary_variance": "stratified_neyman_conservative",
+            "primary_interval": "nominal_normal_not_simultaneous",
+            "negative_control_estimator": "block_standardized_difference_in_means",
+            "guardrail_point_estimator": "pooled_difference_in_proportions",
+            "guardrail_bound": (
+                "pooled_newcombe_style_bonferroni_not_block_adjusted"
+            ),
             "active_delivery_coverage": (
                 "minimum one correct in-window delivery per active assignment; "
                 "intention-to-treat population retained"
@@ -837,9 +857,10 @@ def build_prospective_synthetic_benchmark(
             ),
             "required_quality_gates": list(REQUIRED_QUALITY_GATES),
             "estimator_note": (
-                "Unadjusted intention-to-treat cell differences with nominal large-sample "
-                "intervals; exact within-block allocation balances the canonical fixture, "
-                "but a deployment should pre-specify block-adjusted inference."
+                "Primary and pre-period negative-control risk differences use the declared "
+                "randomization blocks with conservative Neyman variance. Relative-risk "
+                "intervals and rare-event guardrail bounds remain pooled supplementary "
+                "analyses and are explicitly not block-adjusted."
             ),
         },
         "config": asdict(config),

@@ -22,11 +22,18 @@ decision estimand. A large observed rate alone never selects a winner. Pooled fa
 contrasts and content-by-cadence interactions are intentionally not claimed by this
 computational rehearsal; they require a separately powered, pre-specified extension.
 
-The canonical summary uses unadjusted cell-versus-holdout differences. Exact allocation
-within each block makes those cell totals balanced in the fixture, but the confidence
-intervals are nominal large-sample intervals and do not use block adjustment. A real
-deployment should pre-specify a block-adjusted estimator; this rehearsal does not claim
-that extra efficiency.
+The canonical primary and pre-period negative-control summaries use a block-standardized
+intention-to-treat risk difference across the declared lifecycle-segment, tenure-band, and
+assignment-wave blocks. The variance is the conservative Neyman estimator: it does not
+assume one common effect across blocks and omits the unidentified finite-population
+treatment-effect variance term. Every block must retain exact seven-arm allocation with at least two units
+per arm, and a zero or non-finite variance fails closed. The resulting normal intervals are
+nominal, not simultaneous; Holm still controls the six-comparison primary family.
+
+Exact common allocation makes the adjusted point estimate equal to the pooled difference
+in this fixture. Relative-risk intervals remain pooled, supplementary, and not
+block-adjusted. That separation prevents a design-alignment change from being presented as
+a larger treatment effect.
 
 ## Randomization and analysis population
 
@@ -85,7 +92,10 @@ Their one-sided upper confidence bounds use Bonferroni allocation across all 12 
 guardrail comparisons. Every comparison is reported; the two comparisons for the
 pre-specified candidate are rollout gates. A comparison passes only when its upper bound
 is strictly below the pre-specified absolute harm margin; a non-significant harm test is
-not evidence of safety.
+not evidence of safety. Because these events are rare and several block cells contain no
+events, the bounds deliberately retain the conservative pooled Newcombe-style construction
+and are explicitly not block-adjusted. A future stratified guardrail method must validate
+one-sided coverage with zero cells before replacing it.
 
 ## Launch rule
 
@@ -116,7 +126,8 @@ the command documented in the README and stored in
 
 In the canonical run, 8,400 fictional participants are split equally across seven cells.
 All quality gates pass, but the pre-specified candidate's observed funding difference is
-+1.50 percentage points (nominal 95% CI -0.11 to +3.14 pp; Holm-adjusted p = 0.396).
++1.50 percentage points (block-adjusted nominal 95% CI -0.10 to +3.10 pp;
+Holm-adjusted p = 0.395).
 The declared-baseline 80% planning MDE is 2.78 pp, and the simultaneous unsubscribe and
 complaint upper bounds both exceed their respective margins. The resulting
 `continue_testing` decision reflects insufficient evidence and precision, not a failed
