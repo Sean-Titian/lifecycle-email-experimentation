@@ -185,6 +185,15 @@ def test_report_is_deterministic_aggregate_only_and_keeps_every_denominator() ->
     assert first["simulation_contract"]["monte_carlo_intervals"].startswith(
         "two-sided 99% Wilson"
     )
+    public_parity = first["production_api_parity"]
+    assert "maximum_absolute_numeric_error" not in public_parity
+    assert public_parity["reported_numeric_error_bound"] == 1e-12
+    assert public_parity["numeric_parity_passed"] is True
+    assert first["calibration_gates"]["production_api_parity"]["observed"] == {
+        "numeric_within_tolerance": True,
+        "boolean_exact": True,
+        "decision_exact": True,
+    }
     rendered = repr(first).lower()
     assert "participant_id" not in rendered
     assert "replicate_id" not in rendered

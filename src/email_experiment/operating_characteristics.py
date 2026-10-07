@@ -888,6 +888,28 @@ def production_api_parity_check(
     }
 
 
+def _public_parity_summary(parity: dict[str, Any]) -> dict[str, Any]:
+    """Return the platform-stable parity contract for the canonical report.
+
+    The raw maximum is retained by :func:`production_api_parity_check` for tests
+    and diagnostics.  Its last floating-point bits depend on the platform libm,
+    so the byte-stable public artifact records the tested bound and pass flags
+    instead of pretending those machine-level differences are substantive.
+    """
+
+    return {
+        key: value
+        for key, value in parity.items()
+        if key != "maximum_absolute_numeric_error"
+    } | {
+        "reported_numeric_error_bound": parity["numeric_tolerance"],
+        "numeric_error_reporting": (
+            "raw platform-level roundoff omitted; the tested tolerance is the "
+            "public reproducibility contract"
+        ),
+    }
+
+
 def _calibration_gates(
     reports: dict[str, dict[str, Any]],
     parity: dict[str, Any],
@@ -955,7 +977,11 @@ def _calibration_gates(
         },
         "production_api_parity": {
             "criterion": "numeric error <= 1e-12 with exact Boolean and decision parity",
-            "observed": parity["maximum_absolute_numeric_error"],
+            "observed": {
+                "numeric_within_tolerance": parity["numeric_parity_passed"],
+                "boolean_exact": parity["boolean_parity_passed"],
+                "decision_exact": parity["decision_parity_passed"],
+            },
             "passed": bool(parity["passed"]),
         },
     }
@@ -1027,7 +1053,7 @@ def build_operating_characteristics_benchmark(
             "monte_carlo_intervals": "two-sided 99% Wilson score",
         },
         "scenarios": scenario_reports,
-        "production_api_parity": parity,
+        "production_api_parity": _public_parity_summary(parity),
         "calibration_gates": gates,
         "all_calibration_gates_passed": all(gate["passed"] for gate in gates.values()),
         "calibration_status": (
