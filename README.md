@@ -31,12 +31,16 @@ evidence, both candidate guardrails pass, and every integrity gate passes.
 | --- | --- | --- |
 | Design and population | 8,400 randomized and analyzed by ITT; 1,200 per cell | All 10 assignment, exact-block, SRM, concurrent-holdout, timing, known-event latency, delivery-coverage, contamination, negative-control, and population-integrity gates pass. |
 | Pre-specified candidate funding | +1.50 pp versus holdout; block-adjusted nominal 95% CI -0.10 to +3.10 pp; Holm-adjusted p = 0.395 | Superiority is not established. |
-| Prospective power | 80% planning MDE = 2.78 pp at a declared 4% baseline and conservative 0.05/6 planning alpha | The fixture is underpowered for the small simulated effect; this is shown rather than hidden. |
+| Analytic planning reference | 2.7839 pp at a declared 4% baseline, using baseline variance and Bonferroni alpha/6 for a target 80% power | This is a first-order approximation, not an empirically attained 80%-power MDE. |
+| Repeated-simulation readiness | Candidate Holm superiority is 65.8% (99% Monte Carlo CI 64.9% to 66.6%) across 20,000 planning-reference replications. Even with an eight-point funding effect and safe true guardrail risks, the complete decision rule passes 0.10% (99% MC CI 0.057% to 0.176%). | Method calibration passes, but rare-event guardrail precision keeps the design at `continue_testing`. |
 | Customer-risk precision | Unsubscribe UCB 1.21 pp vs 0.50 pp margin; complaint UCB 0.65 pp vs 0.30 pp margin | Non-inferiority is inconclusive, so the candidate stays in testing. |
 
-These are deterministic simulation outputs from
-[`reports/prospective-synthetic-benchmark.json`](reports/prospective-synthetic-benchmark.json),
-not source-campaign estimates. The largest observed cell is not promoted after the fact.
+These are synthetic outputs from a
+[single deterministic rehearsal](reports/prospective-synthetic-benchmark.json) and a
+[five-scenario operating-characteristics benchmark](reports/prospective-synthetic-operating-characteristics.json).
+The latter runs 20,000 replications per scenario and gives every reported rate a two-sided
+99% Wilson Monte Carlo interval. Neither artifact is a source-campaign estimate, and the
+largest observed cell is not promoted after the fact.
 
 ### Resume metric crosswalk
 
@@ -49,7 +53,7 @@ the unmatched follow-up windows prevent a rollout claim.
 
 ## What this project demonstrates
 
-- **Experimentation:** absolute and relative effects, 95% confidence intervals, two-sided tests, Holm/BH multiplicity control, minimum detectable effects, and placebo checks.
+- **Experimentation:** absolute and relative effects, 95% confidence intervals, two-sided tests, Holm/BH multiplicity control, analytic planning approximations, Monte Carlo operating characteristics with uncertainty, and placebo checks.
 - **Prospective design:** stratified factorial randomization, concurrent holdout, sample-ratio
   checks, aligned data freeze, and intention-to-treat non-inferiority guardrails.
 - **Product analytics:** an explicit decision memo, outcome hierarchy, capacity for null results, and customer-harm guardrails.
@@ -82,6 +86,8 @@ docs/evidence-card.md                 intended use, evidence tiers, and limitati
 reports/source-benchmark.json         aggregate-only source benchmark
 reports/prospective-synthetic-benchmark.json
                                       reproducible aggregate design rehearsal
+reports/prospective-synthetic-operating-characteristics.json
+                                      five-scenario aggregate design diagnostic
 ```
 
 ## Quickstart
@@ -90,10 +96,12 @@ reports/prospective-synthetic-benchmark.json
 python -m venv .venv
 # Windows: .venv\Scripts\activate
 # macOS/Linux: source .venv/bin/activate
+python -m pip install -r requirements-benchmark.txt
 python -m pip install -e ".[dev]"
 python -m email_experiment generate-synthetic --output-dir data/synthetic
 python -m email_experiment run-synthetic --output-dir reports/synthetic
 python -m email_experiment run-prospective-synthetic --output reports/prospective-synthetic-benchmark.json
+python -m email_experiment run-prospective-operating-characteristics --output reports/prospective-synthetic-operating-characteristics.json
 pytest
 ruff check .
 ```
@@ -104,25 +112,27 @@ behavior; they are not presented as evidence about the source campaign. See
 [data/README.md](data/README.md) for the privacy boundary and schema expectations.
 
 As a power sanity check, the default deterministic run finds no Holm-significant primary or
-pre-treatment negative-control comparison. Its per-experiment 80% MDE is about 2.34–2.41 percentage
-points, far above the simulated 0.42-point effect. A large-looking synthetic win is not engineered
-into the demo.
+pre-treatment negative-control comparison. Its simple per-experiment normal-approximation
+reference for a target 80% power is about 2.34–2.41 percentage points, far above the
+simulated 0.42-point effect. This is not a calibrated family-wise MDE. A large-looking
+synthetic win is not engineered into the demo.
 
-The prospective command writes only the canonical aggregate report; participant and event
-rows stay in memory. CI regenerates that report from the built wheel and requires exact
-byte equality. See [the prospective synthetic study](docs/prospective-synthetic-study.md)
-for the estimands, multiplicity families, failure gates, and limitations.
+The two prospective commands write only canonical aggregate reports; participant, event,
+and replication rows are never written. CI regenerates both reports from the built wheel
+and requires exact byte equality. See
+[the prospective synthetic study](docs/prospective-synthetic-study.md) for the estimands,
+multiplicity families, calibration gates, decision gates, and limitations.
 
-Package 0.4.0 keeps the fail-closed schema, timing, exact-allocation, and delivery-coverage
-contracts from 0.3.0 and aligns primary inference with the declared randomization blocks.
-Primary and pre-period negative-control risk differences now standardize across
-lifecycle-segment, tenure-band, and assignment-wave blocks with conservative Neyman
-variance. The candidate point estimate remains +1.50 pp and the decision remains
-`continue_testing`; this is a design-alignment improvement, not a larger effect claim.
-Rare-event guardrail uncertainty deliberately remains the conservative pooled
-Newcombe-style 12-way Bonferroni bound and is labeled not block-adjusted. A real deployment
-still needs independently verified source watermarks because a sparse event table cannot
-prove that an entirely missing endpoint feed is complete.
+Package 0.5.0 adds repeated-simulation calibration without changing the single-run
+estimand or its `continue_testing` result. The new count-level benchmark preserves the
+shared holdout and declared blocks, uses deterministic SHA-256-keyed PCG64 streams, retains
+every requested replication, and matches 12 fixed row-level production-API checks to within
+`1e-12` with exact Boolean and decision parity. That parity set is a regression check, not
+proof over every possible count state. The release separates method calibration from
+design readiness: all frozen calibration gates pass, while rare-event non-inferiority
+precision makes the current complete launch rule impractical. A real deployment still
+needs independently verified source watermarks because a sparse event table cannot prove
+that an entirely missing endpoint feed is complete.
 
 ## Evidence boundary
 
@@ -158,6 +168,8 @@ real authorized randomized experiment is still required before any rollout claim
 - tests for joins, multiplicity, strict timezone handling, exact block allocation,
   block-standardized inference, SRM, delivery coverage, contamination, aligned freeze,
   report determinism, and guardrail denominators
+- 20,000 replications across each of five frozen synthetic scenarios, with two-sided 99%
+  Wilson Monte Carlo intervals and vectorized-to-production API parity checks
 - Ruff linting and GitHub Actions CI
 - MIT-licensed code; source data are not redistributed
 

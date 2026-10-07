@@ -22,6 +22,12 @@ from .funnel import (
     summarize_ordered_funnel,
     unsubscribe_metrics,
 )
+from .operating_characteristics import (
+    OperatingCharacteristicsConfig,
+    build_operating_characteristics_benchmark,
+    production_api_parity_check,
+    write_operating_characteristics_benchmark,
+)
 from .prospective import (
     ProspectiveSyntheticConfig,
     ProspectiveSyntheticData,
@@ -49,7 +55,7 @@ from .synthetic import (
 )
 from .time_windows import censoring_summary, construct_windowed_outcome
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"
 
 __all__ = [
     "ACTIVE_ARMS",
@@ -59,6 +65,7 @@ __all__ = [
     "ContractError",
     "DecisionResult",
     "HOLDOUT_ARM",
+    "OperatingCharacteristicsConfig",
     "ProspectiveSyntheticConfig",
     "ProspectiveSyntheticData",
     "REQUIRED_QUALITY_GATES",
@@ -72,6 +79,7 @@ __all__ = [
     "audit_followup",
     "audit_sample_ratio",
     "build_prospective_synthetic_benchmark",
+    "build_operating_characteristics_benchmark",
     "censoring_summary",
     "compare_binary_proportions",
     "compare_block_standardized_binary",
@@ -86,10 +94,12 @@ __all__ = [
     "new_link_funnel_membership",
     "one_to_one_join",
     "ordered_funnel_membership",
+    "production_api_parity_check",
     "stratified_factorial_assignment",
     "summarize_ordered_funnel",
     "unsubscribe_metrics",
     "validate_unique_key",
     "validate_events",
     "write_prospective_synthetic_benchmark",
+    "write_operating_characteristics_benchmark",
 ]

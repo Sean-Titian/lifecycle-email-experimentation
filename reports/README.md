@@ -31,6 +31,23 @@ CI rebuilds the report from packaged code and requires byte-for-byte equality, s
 the estimand, seed, configuration, or serialization cannot silently leave stale numbers in
 the repository.
 
+## `prospective-synthetic-operating-characteristics.json`
+
+This tracked aggregate-only artifact runs 20,000 synthetic replications under each of five
+frozen scenarios. It reports primary family-wise behavior, nominal 95% effect-interval
+coverage, candidate Holm superiority, negative-control behavior, guardrail
+non-inferiority decisions, and the complete policy frequency. Every probability is
+reported with a two-sided 99% Wilson Monte Carlo interval.
+
+The benchmark preserves a shared holdout within each replication and regression-tests the
+vectorized count kernel against the row-level production APIs. It is conditional on the
+declared Bernoulli data-generating process, exact allocation, and operational quality
+gates; it does not estimate a real campaign effect or validate an external event feed.
+
+All frozen calibration gates pass, but `design_readiness` remains `continue_testing`.
+Calibration verifies implementation behavior; it does not authorize rollout. CI rebuilds
+this report from both source and the packaged wheel and requires byte-for-byte equality.
+
 ## Publication checks
 
 Before committing any new report:
@@ -39,4 +56,8 @@ Before committing any new report:
 2. scan keys and values for identifiers, text, paths, and secrets;
 3. reconcile headline metrics with the analysis contract;
 4. retain null comparisons and corrected p-values;
-5. verify that timing and censoring limitations remain visible.
+5. verify that timing and censoring limitations remain visible;
+6. keep operating-characteristics outputs aggregate-only, with no replication rows,
+   per-replication seeds, identifiers, or paths;
+7. distinguish effect confidence intervals from Monte Carlo intervals around estimated
+   operating-characteristic rates.

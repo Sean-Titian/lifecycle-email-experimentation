@@ -73,6 +73,12 @@ Pre-specify a non-inferiority margin for each rollout-blocking guardrail rather 
 
 Calculate sample size from the control funding rate, minimum business-relevant absolute effect, desired power, and number of primary comparisons. Do not use the observed winning effect as the planning target without shrinkage.
 
+A baseline-variance normal approximation is only a planning reference. Final sample-size
+selection must calibrate the exact block-standardized estimator, Holm family,
+alternative-rate variance, negative-control gate, simultaneous guardrail bounds, and
+complete launch rule by repeated simulation. Report Monte Carlo uncertainty and use a
+predeclared lower-bound readiness criterion rather than a point estimate alone.
+
 Pre-registered hierarchy for the full factorial design:
 
 1. test all six active-cell-versus-holdout funding comparisons as one Holm family at α = 0.05;
@@ -118,3 +124,11 @@ A launch recommendation requires all of the following:
 - a monitoring plan for calibration of expected volume, event latency, and customer harm.
 
 If these conditions are not met, the correct product decision is to keep testing—not to select the largest observed percentage.
+
+Passing estimator-calibration gates is necessary but not sufficient for design readiness.
+The design must also have an acceptable probability of satisfying the complete
+pre-specified decision rule under a business-relevant beneficial effect and safe true
+guardrail risks. In the current synthetic diagnostic, even an eight-point funding effect
+with guardrail risks equal to holdout meets the full rule in only about 0.1% of
+replications. That value diagnoses this frozen design; it is not a real campaign success
+probability.

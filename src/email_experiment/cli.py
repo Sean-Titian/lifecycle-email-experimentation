@@ -15,6 +15,10 @@ from .funnel import (
     summarize_ordered_funnel,
     unsubscribe_metrics,
 )
+from .operating_characteristics import (
+    OperatingCharacteristicsConfig,
+    write_operating_characteristics_benchmark,
+)
 from .prospective import (
     ProspectiveSyntheticConfig,
     write_prospective_synthetic_benchmark,
@@ -208,6 +212,19 @@ def build_parser() -> argparse.ArgumentParser:
     prospective.add_argument("--seed", type=int, default=20260908)
     prospective.add_argument("--units-per-arm-per-block", type=int, default=100)
     prospective.add_argument("--waves", type=int, default=2)
+    operating = subparsers.add_parser(
+        "run-prospective-operating-characteristics",
+        help="run the aggregate-only prospective synthetic simulation benchmark",
+    )
+    operating.add_argument(
+        "--output",
+        default="reports/prospective-synthetic-operating-characteristics.json",
+        help="synthetic aggregate Monte Carlo JSON path",
+    )
+    operating.add_argument("--seed", type=int, default=20261006)
+    operating.add_argument("--replications", type=int, default=20_000)
+    operating.add_argument("--units-per-arm-per-block", type=int, default=100)
+    operating.add_argument("--waves", type=int, default=2)
     return parser
 
 
@@ -231,5 +248,14 @@ def main(argv: list[str] | None = None) -> int:
             assignment_waves=args.waves,
         )
         write_prospective_synthetic_benchmark(args.output, config)
+        return 0
+    if args.command == "run-prospective-operating-characteristics":
+        config = OperatingCharacteristicsConfig(
+            seed=args.seed,
+            replications=args.replications,
+            units_per_arm_per_block=args.units_per_arm_per_block,
+            assignment_waves=args.waves,
+        )
+        write_operating_characteristics_benchmark(args.output, config)
         return 0
     raise AssertionError("argparse accepted an unknown command")

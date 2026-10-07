@@ -128,15 +128,51 @@ In the canonical run, 8,400 fictional participants are split equally across seve
 All quality gates pass, but the pre-specified candidate's observed funding difference is
 +1.50 percentage points (block-adjusted nominal 95% CI -0.10 to +3.10 pp;
 Holm-adjusted p = 0.395).
-The declared-baseline 80% planning MDE is 2.78 pp, and the simultaneous unsubscribe and
-complaint upper bounds both exceed their respective margins. The resulting
+The 2.7839 pp value is an analytic planning reference computed from a declared 4%
+baseline, baseline-rate variance, and Bonferroni alpha/6 for a target 80% power. It is not
+an empirically attained 80%-power MDE. The simultaneous unsubscribe and complaint upper
+bounds both exceed their respective margins. The resulting
 `continue_testing` decision reflects insufficient evidence and precision, not a failed
 attempt to find the largest rate.
+
+## Repeated-simulation operating characteristics
+
+The companion aggregate benchmark runs 20,000 replications under each of five frozen
+synthetic scenarios. It simulates block-by-arm Bernoulli counts directly, preserves the
+same concurrent holdout across all six contrasts inside each replication, and uses
+deterministic PCG64 streams keyed by a master seed, scenario, and outcome through SHA-256.
+Every requested replication remains in every rate denominator, and every rate is reported
+with a two-sided 99% Wilson Monte Carlo interval. A fixed 12-replication parity check
+reconstructs ephemeral rows and matches the production analysis APIs numerically, in their
+Boolean gates, and in the final decision. This fixed parity set is a regression check, not
+an exhaustive proof over every possible count configuration.
+
+Under the candidate-only 2.7839 pp planning-reference scenario, candidate Holm
+superiority is 65.8% (99% Monte Carlo CI 64.9% to 66.6%), materially below the targeted
+80%. This gap reflects the frozen binary data-generating process, alternative-rate
+variance, discrete outcomes, and the actual shared-holdout Holm decision rule; it does not
+show that the analytic approximation was implemented incorrectly.
+
+The estimator-calibration gates all pass. Under the positive-control scenario with an
+eight-percentage-point candidate funding effect, candidate primary superiority is detected
+in all 20,000 replications. Yet when the true unsubscribe and complaint risks equal the
+holdout risks, the complete pre-specified decision rule is met only 0.10% of the time (99%
+Monte Carlo CI 0.057% to 0.176%). That is a synthetic full-policy operating characteristic,
+not primary power or a real campaign success probability. It exposes inadequate precision
+in the conservative rare-event guardrail bounds, so `design_readiness` remains
+`continue_testing` even though `calibration_status` is `passed`.
+
+The operating-characteristics study is conditional on exact allocation, complete
+follow-up, no contamination, and the non-statistical quality gates passing. It does not
+simulate missing ledgers, delayed or incomplete feeds, censoring, join amplification,
+external-source validation, or deployment drift.
 
 ## What this can and cannot show
 
 The study can show that a decision policy, denominator, time window, multiplicity family,
-and declared synthetic failure gates are encoded consistently and reproducibly. It cannot
-estimate a real campaign effect, prove an external event feed is complete, validate the
-retrospective source benchmark, establish a production non-inferiority margin, or replace a
-real randomized experiment.
+and declared synthetic failure gates are encoded consistently and reproducibly. Repeated
+simulation can additionally show how the frozen statistical policy behaves under the
+declared Bernoulli scenarios. It cannot establish real-world power or safety, estimate a
+real campaign effect, prove an external event feed is complete, validate the retrospective
+source benchmark, establish a production non-inferiority margin, authorize rollout, or
+replace a real randomized experiment.

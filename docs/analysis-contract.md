@@ -44,7 +44,8 @@ Report for every planned comparison:
 - relative risk with 95% confidence interval;
 - two-sided p-value;
 - adjusted p-value within its pre-registered family;
-- approximate minimum detectable effect at 80% power.
+- the declared analytic planning approximation, target power, assumptions, and, when
+  available, repeated-simulation operating characteristics with Monte Carlo uncertainty.
 
 ### Secondary behavioral endpoints
 
@@ -108,6 +109,18 @@ The rare-event guardrail point estimates and one-sided bounds remain pooled. The
 Newcombe-style Bonferroni bounds are explicitly not block-adjusted because zero-event block
 cells make a naive stratified Wald bound unsafe. This limitation is carried into the report
 rather than hidden behind the block-adjusted primary analysis.
+
+### Operating-characteristics contract
+
+The public design diagnostic uses five predeclared synthetic scenarios and 20,000
+replications per scenario. The candidate is fixed before simulation, and the same
+concurrent holdout count is reused across all six active comparisons inside each
+replication. Every reported probability includes a two-sided 99% Wilson Monte Carlo
+interval. Every requested replication remains in every denominator; a zero or non-finite
+variance fails closed rather than being dropped. A fixed count set is reconstructed into
+ephemeral row-level frames to verify numeric, Boolean, and final-decision parity between the
+vectorized kernel and production APIs. Calibration status and design readiness are separate
+outputs.
 
 ## 5. Data-quality gates
 
@@ -181,7 +194,17 @@ It may not say:
 - daily sending beats twice-weekly sending;
 - opens caused links or funding;
 - the aggregate control is equivalent to a randomized user-level holdout;
-- synthetic output validates the source campaign.
+- synthetic output validates the source campaign;
+- 2.7839 pp is an achieved 80%-power MDE;
+- passing calibration makes the design rollout-ready;
+- the synthetic full-policy rate is a real campaign success probability;
+- simulated guardrail precision proves production safety.
+
+The public write-up may say that, under the frozen candidate-only synthetic
+planning-reference scenario, candidate Holm superiority was 65.8% across 20,000
+replications (99% Monte Carlo CI 64.9% to 66.6%), rather than the targeted 80%. That claim
+must retain the scenario, synthetic, replication-count, and Monte Carlo-uncertainty
+qualifiers.
 
 ## 10. Publication checklist
 
@@ -194,3 +217,6 @@ It may not say:
   prospective rollout guardrails use all randomized users by intention to treat.
 - [x] No raw rows, identifiers, private text, or local paths are present.
 - [x] README recommendation matches the strength of the design.
+- [x] Operating-characteristics scenario truth, replication denominators, Monte Carlo
+  intervals, conditional quality-gate boundary, and calibration/readiness distinction are
+  disclosed.

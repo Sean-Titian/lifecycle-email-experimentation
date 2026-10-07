@@ -24,6 +24,7 @@ This is the experimentation equivalent of a model card: it states what evidence 
 | Public executable | Synthetic-data workflow and tests | Code correctness, estimator behavior, invariant checks | Real-world effect magnitude |
 | Aggregate reproduction | `reports/source-benchmark.json` | Non-identifying descriptive rates and audit counts | Row-level verification by repository users |
 | Prospective executable | `docs/prospective-synthetic-study.md` and `reports/prospective-synthetic-benchmark.json` | Reproducible randomization, fixed-window ITT inference, quality gates, and decision logic | A completed real-world experiment or campaign effect |
+| Operating-characteristics executable | `reports/prospective-synthetic-operating-characteristics.json` | Synthetic repeated-sampling calibration of type-I behavior, nominal coverage, candidate power, guardrail precision, and full-policy frequency | Real-world power, safety, campaign effect, or rollout authorization |
 
 ## Aggregate benchmark summary
 
@@ -44,8 +45,14 @@ This is the experimentation equivalent of a model card: it states what evidence 
   -0.10 to +3.10 pp, Holm-adjusted p = 0.395;
 - primary and negative-control risk differences use block standardization with conservative
   Neyman variance; pooled rare-event guardrail bounds remain explicitly not block-adjusted;
-- conservative 80% planning MDE: 2.78 pp from the declared 4% baseline, not the observed
-  holdout result;
+- analytic planning reference: 2.7839 pp from a declared 4% baseline, baseline variance,
+  and Bonferroni alpha/6; it targets 80% but is not an attained 80%-power MDE;
+- planning-reference candidate Holm superiority: 65.8% across 20,000 synthetic
+  replications (99% Monte Carlo CI 64.9% to 66.6%);
+- all frozen calibration gates pass, while `design_readiness` remains `continue_testing`;
+- with an eight-point funding effect and true candidate guardrail risks equal to holdout,
+  the complete decision rule passes 0.10% of replications (99% Monte Carlo CI 0.057% to
+  0.176%), chiefly because rare-event non-inferiority remains imprecise;
 - candidate unsubscribe and complaint non-inferiority both remain inconclusive;
 - decision: `continue_testing`, with no real-campaign effect claim.
 
@@ -74,7 +81,10 @@ resume-aligned aggregates and qualitative validity flags; the full audit remains
 - placebo and pre-treatment balance checks;
 - unique-user guardrail denominators;
 - temporal funnel ordering;
-- deterministic synthetic tests and CI.
+- deterministic synthetic tests and CI;
+- two-sided 99% Wilson Monte Carlo intervals with every requested replication retained;
+- vectorized count-kernel parity with row-level production statistics, Boolean gates, and
+  final decisions.
 
 The synthetic gate set cannot prove that a real sparse endpoint feed is complete. Production
 use requires source watermarks or complete participant-level outcome snapshots before zero

@@ -1,0 +1,1344 @@
+{
+  "all_calibration_gates_passed": true,
+  "artifact_scope": "aggregate_synthetic_design_diagnostic_not_campaign_evidence",
+  "artifact_type": "synthetic_prospective_operating_characteristics_benchmark",
+  "calibration_gates": {
+    "global_null_nominal_interval_coverage": {
+      "criterion": "smallest active-arm 99% Monte Carlo lower bound >= 0.93",
+      "observed": 0.9458271374197352,
+      "passed": true
+    },
+    "global_null_primary_fwer": {
+      "criterion": "99% Monte Carlo upper bound <= 0.06",
+      "observed": 0.04570381970069143,
+      "passed": true
+    },
+    "guardrail_margin_boundary_family_false_noninferiority": {
+      "criterion": "family-any 99% Monte Carlo upper bound <= 0.06",
+      "observed": 0.01339375147687957,
+      "passed": true
+    },
+    "negative_control_fwer_all_scenarios": {
+      "criterion": "largest 99% Monte Carlo upper bound <= 0.06",
+      "observed": 0.04898107018184064,
+      "passed": true
+    },
+    "no_invalid_replicates": {
+      "criterion": "zero invalid replicates across every requested denominator",
+      "observed": 0,
+      "passed": true
+    },
+    "production_api_parity": {
+      "criterion": "numeric error <= 1e-12 with exact Boolean and decision parity",
+      "observed": 8.992806499463768e-15,
+      "passed": true
+    },
+    "strong_effect_candidate_detection": {
+      "criterion": "99% Monte Carlo lower bound >= 0.99",
+      "observed": 0.9996683651880833,
+      "passed": true
+    }
+  },
+  "calibration_status": "passed",
+  "config": {
+    "assignment_waves": 2,
+    "complaint_noninferiority_margin": 0.003,
+    "family_alpha": 0.05,
+    "monte_carlo_confidence": 0.99,
+    "pre_specified_candidate_arm": "challenger_a__twice_weekly",
+    "replications": 20000,
+    "seed": 20261006,
+    "units_per_arm_per_block": 100,
+    "unsubscribe_noninferiority_margin": 0.005
+  },
+  "data_classification": "synthetic",
+  "design_readiness": {
+    "interpretation": "Calibration checks method behavior; design readiness additionally requires adequate end-to-end decision probability and external data validation.",
+    "reasons": [
+      "This synthetic operating-characteristics artifact cannot authorize a rollout.",
+      "Even an eight-point funding effect with safe true guardrail risks does not reach an 80% lower-bound policy-success target because the rare-event guardrail bounds remain imprecise."
+    ],
+    "status": "continue_testing"
+  },
+  "limitations": [
+    "Results are conditional on the declared independent Bernoulli superpopulation data-generating process; they are not an arbitrary finite-population coverage guarantee.",
+    "Every simulation assumes exact block allocation, complete follow-up, no contamination, and all non-statistical quality gates passing.",
+    "The benchmark does not simulate assignment-ledger omissions, delayed or missing event feeds, censoring, join amplification, or real-world drift.",
+    "No result is evidence about a real campaign or a production rollout probability."
+  ],
+  "planning_diagnostic": {
+    "empirical_candidate_holm_superiority": {
+      "monte_carlo_ci_high": 0.6661394864562982,
+      "monte_carlo_ci_low": 0.6488560154144669,
+      "monte_carlo_ci_method": "wilson_score",
+      "monte_carlo_confidence": 0.99,
+      "rate": 0.65755,
+      "replications": 20000,
+      "successes": 13151
+    },
+    "interpretation": "The empirical Holm power is the design diagnostic. The analytic value is a planning reference, not an achieved 80%-power MDE.",
+    "original_approximation": "4% baseline-variance normal approximation with alpha/6 Bonferroni planning allocation and nominal 80% target power",
+    "reference_effect": 0.027839028056397323,
+    "reference_effect_percentage_points": 2.783902805639732
+  },
+  "production_api_parity": {
+    "boolean_parity_passed": true,
+    "decision_parity_passed": true,
+    "maximum_absolute_numeric_error": 8.992806499463768e-15,
+    "numeric_parity_passed": true,
+    "numeric_tolerance": 1e-12,
+    "passed": true,
+    "replications": 12,
+    "scenario_id": "configured_small_effects",
+    "units_per_arm_per_block": 100
+  },
+  "report_scope": "aggregate_only_monte_carlo",
+  "scenarios": [
+    {
+      "candidate_effect_diagnostics": {
+        "empirical_standard_deviation": 0.008061866826824155,
+        "mean_estimated_risk_difference": 7.291666666666666e-05,
+        "monte_carlo_bias": 7.291666666666666e-05
+      },
+      "data_generating_process": {
+        "all_active_guardrails_at_noninferiority_margins": false,
+        "candidate_arm": "challenger_a__twice_weekly",
+        "candidate_true_funding_risk_difference": 0.0,
+        "candidate_true_guardrail_risk_differences": {
+          "complaint_14d": 0.0,
+          "unsubscribe_14d": 0.0
+        },
+        "centered_funding_block_heterogeneity": false,
+        "funding_probability_range": [
+          0.032,
+          0.05
+        ],
+        "pre_period_probability_range": [
+          0.15,
+          0.35000000000000003
+        ]
+      },
+      "description": "All arms share each block's outcome probabilities; this diagnoses primary and negative-control family-wise false-positive behavior.",
+      "operating_characteristics": {
+        "candidate_guardrail_noninferiority": {
+          "complaint_14d": {
+            "monte_carlo_ci_high": 0.011818333077427558,
+            "monte_carlo_ci_low": 0.008206768528694425,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.00985,
+            "replications": 20000,
+            "successes": 197
+          },
+          "unsubscribe_14d": {
+            "monte_carlo_ci_high": 0.09596476449132905,
+            "monte_carlo_ci_low": 0.08550677809266836,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.0906,
+            "replications": 20000,
+            "successes": 1812
+          }
+        },
+        "candidate_nominal_95_ci_coverage": {
+          "monte_carlo_ci_high": 0.9549286597026124,
+          "monte_carlo_ci_low": 0.9470721062065951,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 0.95115,
+          "replications": 20000,
+          "successes": 19023
+        },
+        "candidate_superiority": {
+          "monte_carlo_ci_high": 0.0058942208865661915,
+          "monte_carlo_ci_low": 0.0034344292120432997,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 0.0045,
+          "replications": 20000,
+          "successes": 90
+        },
+        "guardrail_family_any_noninferiority_pass": {
+          "monte_carlo_ci_high": 0.3769769677784112,
+          "monte_carlo_ci_low": 0.3594104843214912,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 0.36815,
+          "replications": 20000,
+          "successes": 7363
+        },
+        "invalid_replicate": {
+          "monte_carlo_ci_high": 0.0003316348119167422,
+          "monte_carlo_ci_low": 0.0,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 0.0,
+          "replications": 20000,
+          "successes": 0
+        },
+        "negative_control_family_any_holm_rejection": {
+          "monte_carlo_ci_high": 0.04507896418708239,
+          "monte_carlo_ci_low": 0.03782527758937004,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 0.0413,
+          "replications": 20000,
+          "successes": 826
+        },
+        "negative_control_gate_pass": {
+          "monte_carlo_ci_high": 0.96217472241063,
+          "monte_carlo_ci_low": 0.9549210358129175,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 0.9587,
+          "replications": 20000,
+          "successes": 19174
+        },
+        "nominal_95_ci_coverage_by_active_arm": {
+          "challenger_a__daily": {
+            "monte_carlo_ci_high": 0.9537744244130207,
+            "monte_carlo_ci_low": 0.9458271374197352,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.94995,
+            "replications": 20000,
+            "successes": 18999
+          },
+          "challenger_a__twice_weekly": {
+            "monte_carlo_ci_high": 0.9549286597026124,
+            "monte_carlo_ci_low": 0.9470721062065951,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.95115,
+            "replications": 20000,
+            "successes": 19023
+          },
+          "challenger_b__daily": {
+            "monte_carlo_ci_high": 0.9558419672959352,
+            "monte_carlo_ci_low": 0.9480581685071295,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.9521,
+            "replications": 20000,
+            "successes": 19042
+          },
+          "challenger_b__twice_weekly": {
+            "monte_carlo_ci_high": 0.9545439860479655,
+            "monte_carlo_ci_low": 0.9466570451690915,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.95075,
+            "replications": 20000,
+            "successes": 19015
+          },
+          "current__daily": {
+            "monte_carlo_ci_high": 0.9549767388255753,
+            "monte_carlo_ci_low": 0.9471239939201511,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.9512,
+            "replications": 20000,
+            "successes": 19024
+          },
+          "current__twice_weekly": {
+            "monte_carlo_ci_high": 0.9542554336990883,
+            "monte_carlo_ci_low": 0.946345796498856,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.95045,
+            "replications": 20000,
+            "successes": 19009
+          }
+        },
+        "policy_blocking_reason_frequency": {
+          "guardrail_noninferiority_not_established:complaint_14d": {
+            "monte_carlo_ci_high": 0.9917932314713056,
+            "monte_carlo_ci_low": 0.9881816669225725,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.99015,
+            "replications": 20000,
+            "successes": 19803
+          },
+          "guardrail_noninferiority_not_established:unsubscribe_14d": {
+            "monte_carlo_ci_high": 0.9144932219073316,
+            "monte_carlo_ci_low": 0.9040352355086709,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.9094,
+            "replications": 20000,
+            "successes": 18188
+          },
+          "invalid_inference": {
+            "monte_carlo_ci_high": 0.0003316348119167422,
+            "monte_carlo_ci_low": 0.0,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.0,
+            "replications": 20000,
+            "successes": 0
+          },
+          "pre_period_negative_control": {
+            "monte_carlo_ci_high": 0.04507896418708239,
+            "monte_carlo_ci_low": 0.03782527758937004,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.0413,
+            "replications": 20000,
+            "successes": 826
+          },
+          "primary_superiority_not_established": {
+            "monte_carlo_ci_high": 0.9965655707879567,
+            "monte_carlo_ci_low": 0.9941057791134339,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.9955,
+            "replications": 20000,
+            "successes": 19910
+          }
+        },
+        "policy_continue_testing": {
+          "monte_carlo_ci_high": 1.0,
+          "monte_carlo_ci_low": 0.9996683651880833,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 1.0,
+          "replications": 20000,
+          "successes": 20000
+        },
+        "policy_criteria_met": {
+          "monte_carlo_ci_high": 0.0003316348119167422,
+          "monte_carlo_ci_low": 0.0,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 0.0,
+          "replications": 20000,
+          "successes": 0
+        },
+        "primary_family_any_holm_rejection": {
+          "monte_carlo_ci_high": 0.04570381970069143,
+          "monte_carlo_ci_low": 0.0384000241139867,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 0.0419,
+          "replications": 20000,
+          "successes": 838
+        },
+        "primary_family_any_superiority": {
+          "monte_carlo_ci_high": 0.022926027339420334,
+          "monte_carlo_ci_low": 0.017792209426094968,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 0.0202,
+          "replications": 20000,
+          "successes": 404
+        }
+      },
+      "replications_in_every_denominator": 20000,
+      "replications_requested": 20000,
+      "scenario_id": "global_null"
+    },
+    {
+      "candidate_effect_diagnostics": {
+        "empirical_standard_deviation": 0.00814920919995897,
+        "mean_estimated_risk_difference": 0.0019845833333333334,
+        "monte_carlo_bias": -1.541666666666835e-05
+      },
+      "data_generating_process": {
+        "all_active_guardrails_at_noninferiority_margins": false,
+        "candidate_arm": "challenger_a__twice_weekly",
+        "candidate_true_funding_risk_difference": 0.0020000000000000018,
+        "candidate_true_guardrail_risk_differences": {
+          "complaint_14d": 9.999999999999983e-05,
+          "unsubscribe_14d": 0.00019999999999999966
+        },
+        "centered_funding_block_heterogeneity": false,
+        "funding_probability_range": [
+          0.031,
+          0.052500000000000005
+        ],
+        "pre_period_probability_range": [
+          0.15,
+          0.35000000000000003
+        ]
+      },
+      "description": "The exact effect configuration used by the prospective fixture.",
+      "operating_characteristics": {
+        "candidate_guardrail_noninferiority": {
+          "complaint_14d": {
+            "monte_carlo_ci_high": 0.010068379232771735,
+            "monte_carlo_ci_low": 0.006757783604748383,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.00825,
+            "replications": 20000,
+            "successes": 165
+          },
+          "unsubscribe_14d": {
+            "monte_carlo_ci_high": 0.08723969713496234,
+            "monte_carlo_ci_low": 0.07723748324083769,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.0821,
+            "replications": 20000,
+            "successes": 1642
+          }
+        },
+        "candidate_nominal_95_ci_coverage": {
+          "monte_carlo_ci_high": 0.9565627029233233,
+          "monte_carlo_ci_low": 0.9488369354275236,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 0.95285,
+          "replications": 20000,
+          "successes": 19057
+        },
+        "candidate_superiority": {
+          "monte_carlo_ci_high": 0.010013463805627298,
+          "monte_carlo_ci_low": 0.00671273219537401,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 0.0082,
+          "replications": 20000,
+          "successes": 164
+        },
+        "guardrail_family_any_noninferiority_pass": {
+          "monte_carlo_ci_high": 0.31581653682512806,
+          "monte_carlo_ci_low": 0.29901124206790347,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 0.30735,
+          "replications": 20000,
+          "successes": 6147
+        },
+        "invalid_replicate": {
+          "monte_carlo_ci_high": 0.0003316348119167422,
+          "monte_carlo_ci_low": 0.0,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 0.0,
+          "replications": 20000,
+          "successes": 0
+        },
+        "negative_control_family_any_holm_rejection": {
+          "monte_carlo_ci_high": 0.044662278877071755,
+          "monte_carlo_ci_low": 0.037442228207230206,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 0.0409,
+          "replications": 20000,
+          "successes": 818
+        },
+        "negative_control_gate_pass": {
+          "monte_carlo_ci_high": 0.9625577717927697,
+          "monte_carlo_ci_low": 0.9553377211229283,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 0.9591,
+          "replications": 20000,
+          "successes": 19182
+        },
+        "nominal_95_ci_coverage_by_active_arm": {
+          "challenger_a__daily": {
+            "monte_carlo_ci_high": 0.9543035285438108,
+            "monte_carlo_ci_low": 0.9463976684906521,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.9505,
+            "replications": 20000,
+            "successes": 19010
+          },
+          "challenger_a__twice_weekly": {
+            "monte_carlo_ci_high": 0.9565627029233233,
+            "monte_carlo_ci_low": 0.9488369354275236,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.95285,
+            "replications": 20000,
+            "successes": 19057
+          },
+          "challenger_b__daily": {
+            "monte_carlo_ci_high": 0.9515603943783072,
+            "monte_carlo_ci_low": 0.9434426929745837,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.94765,
+            "replications": 20000,
+            "successes": 18953
+          },
+          "challenger_b__twice_weekly": {
+            "monte_carlo_ci_high": 0.9573311917735978,
+            "monte_carlo_ci_low": 0.9496679159615502,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.95365,
+            "replications": 20000,
+            "successes": 19073
+          },
+          "current__daily": {
+            "monte_carlo_ci_high": 0.9564185770637206,
+            "monte_carlo_ci_low": 0.94868116077757,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.9527,
+            "replications": 20000,
+            "successes": 19054
+          },
+          "current__twice_weekly": {
+            "monte_carlo_ci_high": 0.9529564580957326,
+            "monte_carlo_ci_low": 0.944945667516204,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.9491,
+            "replications": 20000,
+            "successes": 18982
+          }
+        },
+        "policy_blocking_reason_frequency": {
+          "guardrail_noninferiority_not_established:complaint_14d": {
+            "monte_carlo_ci_high": 0.9932422163952516,
+            "monte_carlo_ci_low": 0.9899316207672283,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.99175,
+            "replications": 20000,
+            "successes": 19835
+          },
+          "guardrail_noninferiority_not_established:unsubscribe_14d": {
+            "monte_carlo_ci_high": 0.9227625167591624,
+            "monte_carlo_ci_low": 0.9127603028650377,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.9179,
+            "replications": 20000,
+            "successes": 18358
+          },
+          "invalid_inference": {
+            "monte_carlo_ci_high": 0.0003316348119167422,
+            "monte_carlo_ci_low": 0.0,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.0,
+            "replications": 20000,
+            "successes": 0
+          },
+          "pre_period_negative_control": {
+            "monte_carlo_ci_high": 0.044662278877071755,
+            "monte_carlo_ci_low": 0.037442228207230206,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.0409,
+            "replications": 20000,
+            "successes": 818
+          },
+          "primary_superiority_not_established": {
+            "monte_carlo_ci_high": 0.9932872678046261,
+            "monte_carlo_ci_low": 0.9899865361943727,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.9918,
+            "replications": 20000,
+            "successes": 19836
+          }
+        },
+        "policy_continue_testing": {
+          "monte_carlo_ci_high": 0.9999941296995756,
+          "monte_carlo_ci_low": 0.9995742686519891,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 0.99995,
+          "replications": 20000,
+          "successes": 19999
+        },
+        "policy_criteria_met": {
+          "monte_carlo_ci_high": 0.00042573134801100775,
+          "monte_carlo_ci_low": 5.870300424542824e-06,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 5e-05,
+          "replications": 20000,
+          "successes": 1
+        },
+        "primary_family_any_holm_rejection": {
+          "monte_carlo_ci_high": 0.050176240604076244,
+          "monte_carlo_ci_low": 0.0425247511512194,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 0.0462,
+          "replications": 20000,
+          "successes": 924
+        },
+        "primary_family_any_superiority": {
+          "monte_carlo_ci_high": 0.02921750004556506,
+          "monte_carlo_ci_low": 0.023396790265688437,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 0.02615,
+          "replications": 20000,
+          "successes": 523
+        }
+      },
+      "replications_in_every_denominator": 20000,
+      "replications_requested": 20000,
+      "scenario_id": "configured_small_effects"
+    },
+    {
+      "candidate_effect_diagnostics": {
+        "empirical_standard_deviation": 0.009177677002737554,
+        "mean_estimated_risk_difference": 0.027884208333333334,
+        "monte_carlo_bias": 4.5180276936035435e-05
+      },
+      "data_generating_process": {
+        "all_active_guardrails_at_noninferiority_margins": false,
+        "candidate_arm": "challenger_a__twice_weekly",
+        "candidate_true_funding_risk_difference": 0.0278390280563973,
+        "candidate_true_guardrail_risk_differences": {
+          "complaint_14d": 0.0,
+          "unsubscribe_14d": 0.0
+        },
+        "centered_funding_block_heterogeneity": true,
+        "funding_probability_range": [
+          0.03133333333333334,
+          0.07717236138973066
+        ],
+        "pre_period_probability_range": [
+          0.15,
+          0.35000000000000003
+        ]
+      },
+      "description": "The candidate receives the frozen 2.7839028 percentage-point planning effect; funding block heterogeneity is centered and guardrails are safe.",
+      "operating_characteristics": {
+        "candidate_guardrail_noninferiority": {
+          "complaint_14d": {
+            "monte_carlo_ci_high": 0.013989135900567443,
+            "monte_carlo_ci_low": 0.010034639166306872,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.01185,
+            "replications": 20000,
+            "successes": 237
+          },
+          "unsubscribe_14d": {
+            "monte_carlo_ci_high": 0.10057817198165846,
+            "monte_carlo_ci_low": 0.08989038588903171,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.0951,
+            "replications": 20000,
+            "successes": 1902
+          }
+        },
+        "candidate_nominal_95_ci_coverage": {
+          "monte_carlo_ci_high": 0.9531970688360062,
+          "monte_carlo_ci_low": 0.9452048909585243,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 0.94935,
+          "replications": 20000,
+          "successes": 18987
+        },
+        "candidate_superiority": {
+          "monte_carlo_ci_high": 0.6661394864562982,
+          "monte_carlo_ci_low": 0.6488560154144669,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 0.65755,
+          "replications": 20000,
+          "successes": 13151
+        },
+        "guardrail_family_any_noninferiority_pass": {
+          "monte_carlo_ci_high": 0.37446522817193206,
+          "monte_carlo_ci_low": 0.35692388210202997,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 0.36565,
+          "replications": 20000,
+          "successes": 7313
+        },
+        "invalid_replicate": {
+          "monte_carlo_ci_high": 0.0003316348119167422,
+          "monte_carlo_ci_low": 0.0,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 0.0,
+          "replications": 20000,
+          "successes": 0
+        },
+        "negative_control_family_any_holm_rejection": {
+          "monte_carlo_ci_high": 0.042420959924253626,
+          "monte_carlo_ci_low": 0.03538497318973957,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 0.03875,
+          "replications": 20000,
+          "successes": 775
+        },
+        "negative_control_gate_pass": {
+          "monte_carlo_ci_high": 0.9646150268102605,
+          "monte_carlo_ci_low": 0.9575790400757465,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 0.96125,
+          "replications": 20000,
+          "successes": 19225
+        },
+        "nominal_95_ci_coverage_by_active_arm": {
+          "challenger_a__daily": {
+            "monte_carlo_ci_high": 0.9542554336990883,
+            "monte_carlo_ci_low": 0.946345796498856,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.95045,
+            "replications": 20000,
+            "successes": 19009
+          },
+          "challenger_a__twice_weekly": {
+            "monte_carlo_ci_high": 0.9531970688360062,
+            "monte_carlo_ci_low": 0.9452048909585243,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.94935,
+            "replications": 20000,
+            "successes": 18987
+          },
+          "challenger_b__daily": {
+            "monte_carlo_ci_high": 0.9545920741936694,
+            "monte_carlo_ci_low": 0.9467089238599063,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.9508,
+            "replications": 20000,
+            "successes": 19016
+          },
+          "challenger_b__twice_weekly": {
+            "monte_carlo_ci_high": 0.9531970688360062,
+            "monte_carlo_ci_low": 0.9452048909585243,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.94935,
+            "replications": 20000,
+            "successes": 18987
+          },
+          "current__daily": {
+            "monte_carlo_ci_high": 0.9560822419379542,
+            "monte_carlo_ci_low": 0.9483177280477049,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.95235,
+            "replications": 20000,
+            "successes": 19047
+          },
+          "current__twice_weekly": {
+            "monte_carlo_ci_high": 0.9551690439486146,
+            "monte_carlo_ci_low": 0.9473315561431871,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.9514,
+            "replications": 20000,
+            "successes": 19028
+          }
+        },
+        "policy_blocking_reason_frequency": {
+          "guardrail_noninferiority_not_established:complaint_14d": {
+            "monte_carlo_ci_high": 0.9899653608336931,
+            "monte_carlo_ci_low": 0.9860108640994325,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.98815,
+            "replications": 20000,
+            "successes": 19763
+          },
+          "guardrail_noninferiority_not_established:unsubscribe_14d": {
+            "monte_carlo_ci_high": 0.9101096141109682,
+            "monte_carlo_ci_low": 0.8994218280183416,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.9049,
+            "replications": 20000,
+            "successes": 18098
+          },
+          "invalid_inference": {
+            "monte_carlo_ci_high": 0.0003316348119167422,
+            "monte_carlo_ci_low": 0.0,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.0,
+            "replications": 20000,
+            "successes": 0
+          },
+          "pre_period_negative_control": {
+            "monte_carlo_ci_high": 0.042420959924253626,
+            "monte_carlo_ci_low": 0.03538497318973957,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.03875,
+            "replications": 20000,
+            "successes": 775
+          },
+          "primary_superiority_not_established": {
+            "monte_carlo_ci_high": 0.3511439845855331,
+            "monte_carlo_ci_low": 0.33386051354370183,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.34245,
+            "replications": 20000,
+            "successes": 6849
+          }
+        },
+        "policy_continue_testing": {
+          "monte_carlo_ci_high": 0.99964372834135,
+          "monte_carlo_ci_low": 0.9986251011354699,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 0.9993,
+          "replications": 20000,
+          "successes": 19986
+        },
+        "policy_criteria_met": {
+          "monte_carlo_ci_high": 0.0013748988645300242,
+          "monte_carlo_ci_low": 0.0003562716586500345,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 0.0007,
+          "replications": 20000,
+          "successes": 14
+        },
+        "primary_family_any_holm_rejection": {
+          "monte_carlo_ci_high": 0.6817837251569739,
+          "monte_carlo_ci_low": 0.6647013302172157,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 0.6733,
+          "replications": 20000,
+          "successes": 13466
+        },
+        "primary_family_any_superiority": {
+          "monte_carlo_ci_high": 0.6664375718111237,
+          "monte_carlo_ci_low": 0.6491577310787542,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 0.65785,
+          "replications": 20000,
+          "successes": 13157
+        }
+      },
+      "replications_in_every_denominator": 20000,
+      "replications_requested": 20000,
+      "scenario_id": "planning_reference"
+    },
+    {
+      "candidate_effect_diagnostics": {
+        "empirical_standard_deviation": 0.01093418579159477,
+        "mean_estimated_risk_difference": 0.08001591666666667,
+        "monte_carlo_bias": 1.5916666666684898e-05
+      },
+      "data_generating_process": {
+        "all_active_guardrails_at_noninferiority_margins": false,
+        "candidate_arm": "challenger_a__twice_weekly",
+        "candidate_true_funding_risk_difference": 0.07999999999999999,
+        "candidate_true_guardrail_risk_differences": {
+          "complaint_14d": 0.0,
+          "unsubscribe_14d": 0.0
+        },
+        "centered_funding_block_heterogeneity": false,
+        "funding_probability_range": [
+          0.032,
+          0.13
+        ],
+        "pre_period_probability_range": [
+          0.15,
+          0.35000000000000003
+        ]
+      },
+      "description": "The candidate receives an eight percentage-point funding effect while all active-arm guardrails equal holdout risk.",
+      "operating_characteristics": {
+        "candidate_guardrail_noninferiority": {
+          "complaint_14d": {
+            "monte_carlo_ci_high": 0.01127290690724078,
+            "monte_carlo_ci_low": 0.007752526333693123,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.00935,
+            "replications": 20000,
+            "successes": 187
+          },
+          "unsubscribe_14d": {
+            "monte_carlo_ci_high": 0.10155163926892401,
+            "monte_carlo_ci_low": 0.09081628849562352,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.09605,
+            "replications": 20000,
+            "successes": 1921
+          }
+        },
+        "candidate_nominal_95_ci_coverage": {
+          "monte_carlo_ci_high": 0.9541592406785193,
+          "monte_carlo_ci_low": 0.9462420558463873,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 0.95035,
+          "replications": 20000,
+          "successes": 19007
+        },
+        "candidate_superiority": {
+          "monte_carlo_ci_high": 1.0,
+          "monte_carlo_ci_low": 0.9996683651880833,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 1.0,
+          "replications": 20000,
+          "successes": 20000
+        },
+        "guardrail_family_any_noninferiority_pass": {
+          "monte_carlo_ci_high": 0.3750178326936785,
+          "monte_carlo_ci_low": 0.3574709127819905,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 0.3662,
+          "replications": 20000,
+          "successes": 7324
+        },
+        "invalid_replicate": {
+          "monte_carlo_ci_high": 0.0003316348119167422,
+          "monte_carlo_ci_low": 0.0,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 0.0,
+          "replications": 20000,
+          "successes": 0
+        },
+        "negative_control_family_any_holm_rejection": {
+          "monte_carlo_ci_high": 0.04898107018184064,
+          "monte_carlo_ci_low": 0.0414206843335224,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 0.04505,
+          "replications": 20000,
+          "successes": 901
+        },
+        "negative_control_gate_pass": {
+          "monte_carlo_ci_high": 0.9585793156664776,
+          "monte_carlo_ci_low": 0.9510189298181594,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 0.95495,
+          "replications": 20000,
+          "successes": 19099
+        },
+        "nominal_95_ci_coverage_by_active_arm": {
+          "challenger_a__daily": {
+            "monte_carlo_ci_high": 0.9551209693764936,
+            "monte_carlo_ci_low": 0.9472796638787891,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.95135,
+            "replications": 20000,
+            "successes": 19027
+          },
+          "challenger_a__twice_weekly": {
+            "monte_carlo_ci_high": 0.9541592406785193,
+            "monte_carlo_ci_low": 0.9462420558463873,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.95035,
+            "replications": 20000,
+            "successes": 19007
+          },
+          "challenger_b__daily": {
+            "monte_carlo_ci_high": 0.956466620206054,
+            "monte_carlo_ci_low": 0.9487330844717553,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.95275,
+            "replications": 20000,
+            "successes": 19055
+          },
+          "challenger_b__twice_weekly": {
+            "monte_carlo_ci_high": 0.95271582062151,
+            "monte_carlo_ci_low": 0.9446864708078323,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.94885,
+            "replications": 20000,
+            "successes": 18977
+          },
+          "current__daily": {
+            "monte_carlo_ci_high": 0.9529564580957326,
+            "monte_carlo_ci_low": 0.944945667516204,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.9491,
+            "replications": 20000,
+            "successes": 18982
+          },
+          "current__twice_weekly": {
+            "monte_carlo_ci_high": 0.9534857661717595,
+            "monte_carlo_ci_low": 0.9455159946418839,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.94965,
+            "replications": 20000,
+            "successes": 18993
+          }
+        },
+        "policy_blocking_reason_frequency": {
+          "guardrail_noninferiority_not_established:complaint_14d": {
+            "monte_carlo_ci_high": 0.992247473666307,
+            "monte_carlo_ci_low": 0.9887270930927592,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.99065,
+            "replications": 20000,
+            "successes": 19813
+          },
+          "guardrail_noninferiority_not_established:unsubscribe_14d": {
+            "monte_carlo_ci_high": 0.9091837115043766,
+            "monte_carlo_ci_low": 0.898448360731076,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.90395,
+            "replications": 20000,
+            "successes": 18079
+          },
+          "invalid_inference": {
+            "monte_carlo_ci_high": 0.0003316348119167422,
+            "monte_carlo_ci_low": 0.0,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.0,
+            "replications": 20000,
+            "successes": 0
+          },
+          "pre_period_negative_control": {
+            "monte_carlo_ci_high": 0.04898107018184064,
+            "monte_carlo_ci_low": 0.0414206843335224,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.04505,
+            "replications": 20000,
+            "successes": 901
+          },
+          "primary_superiority_not_established": {
+            "monte_carlo_ci_high": 0.0003316348119167422,
+            "monte_carlo_ci_low": 0.0,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.0,
+            "replications": 20000,
+            "successes": 0
+          }
+        },
+        "policy_continue_testing": {
+          "monte_carlo_ci_high": 0.999433420496609,
+          "monte_carlo_ci_low": 0.998235607961098,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 0.999,
+          "replications": 20000,
+          "successes": 19980
+        },
+        "policy_criteria_met": {
+          "monte_carlo_ci_high": 0.0017643920389019039,
+          "monte_carlo_ci_low": 0.0005665795033910049,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 0.001,
+          "replications": 20000,
+          "successes": 20
+        },
+        "primary_family_any_holm_rejection": {
+          "monte_carlo_ci_high": 1.0,
+          "monte_carlo_ci_low": 0.9996683651880833,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 1.0,
+          "replications": 20000,
+          "successes": 20000
+        },
+        "primary_family_any_superiority": {
+          "monte_carlo_ci_high": 1.0,
+          "monte_carlo_ci_low": 0.9996683651880833,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 1.0,
+          "replications": 20000,
+          "successes": 20000
+        }
+      },
+      "replications_in_every_denominator": 20000,
+      "replications_requested": 20000,
+      "scenario_id": "strong_effect_safe_guardrails"
+    },
+    {
+      "candidate_effect_diagnostics": {
+        "empirical_standard_deviation": 0.01101550710230254,
+        "mean_estimated_risk_difference": 0.08005254166666666,
+        "monte_carlo_bias": 5.2541666666669484e-05
+      },
+      "data_generating_process": {
+        "all_active_guardrails_at_noninferiority_margins": true,
+        "candidate_arm": "challenger_a__twice_weekly",
+        "candidate_true_funding_risk_difference": 0.07999999999999999,
+        "candidate_true_guardrail_risk_differences": {
+          "complaint_14d": 0.003000000000000001,
+          "unsubscribe_14d": 0.005000000000000002
+        },
+        "centered_funding_block_heterogeneity": false,
+        "funding_probability_range": [
+          0.032,
+          0.13
+        ],
+        "pre_period_probability_range": [
+          0.15,
+          0.35000000000000003
+        ]
+      },
+      "description": "The candidate receives an eight percentage-point funding effect and all active-arm guardrail risks sit exactly at their non-inferiority margins.",
+      "operating_characteristics": {
+        "candidate_guardrail_noninferiority": {
+          "complaint_14d": {
+            "monte_carlo_ci_high": 0.0009657501220085964,
+            "monte_carlo_ci_low": 0.0001656193820586125,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.0004,
+            "replications": 20000,
+            "successes": 8
+          },
+          "unsubscribe_14d": {
+            "monte_carlo_ci_high": 0.0022660530428867415,
+            "monte_carlo_ci_low": 0.000864653191556634,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.0014,
+            "replications": 20000,
+            "successes": 28
+          }
+        },
+        "candidate_nominal_95_ci_coverage": {
+          "monte_carlo_ci_high": 0.9542554336990883,
+          "monte_carlo_ci_low": 0.946345796498856,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 0.95045,
+          "replications": 20000,
+          "successes": 19009
+        },
+        "candidate_superiority": {
+          "monte_carlo_ci_high": 1.0,
+          "monte_carlo_ci_low": 0.9996683651880833,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 1.0,
+          "replications": 20000,
+          "successes": 20000
+        },
+        "guardrail_family_any_noninferiority_pass": {
+          "monte_carlo_ci_high": 0.01339375147687957,
+          "monte_carlo_ci_low": 0.009530388388287854,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 0.0113,
+          "replications": 20000,
+          "successes": 226
+        },
+        "invalid_replicate": {
+          "monte_carlo_ci_high": 0.0003316348119167422,
+          "monte_carlo_ci_low": 0.0,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 0.0,
+          "replications": 20000,
+          "successes": 0
+        },
+        "negative_control_family_any_holm_rejection": {
+          "monte_carlo_ci_high": 0.04658868484504221,
+          "monte_carlo_ci_low": 0.03921459519045567,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 0.04275,
+          "replications": 20000,
+          "successes": 855
+        },
+        "negative_control_gate_pass": {
+          "monte_carlo_ci_high": 0.9607854048095444,
+          "monte_carlo_ci_low": 0.9534113151549578,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 0.95725,
+          "replications": 20000,
+          "successes": 19145
+        },
+        "nominal_95_ci_coverage_by_active_arm": {
+          "challenger_a__daily": {
+            "monte_carlo_ci_high": 0.9542554336990883,
+            "monte_carlo_ci_low": 0.946345796498856,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.95045,
+            "replications": 20000,
+            "successes": 19009
+          },
+          "challenger_a__twice_weekly": {
+            "monte_carlo_ci_high": 0.9542554336990883,
+            "monte_carlo_ci_low": 0.946345796498856,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.95045,
+            "replications": 20000,
+            "successes": 19009
+          },
+          "challenger_b__daily": {
+            "monte_carlo_ci_high": 0.9557939088636114,
+            "monte_carlo_ci_low": 0.9480062601029347,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.95205,
+            "replications": 20000,
+            "successes": 19041
+          },
+          "challenger_b__twice_weekly": {
+            "monte_carlo_ci_high": 0.9548324980576092,
+            "monte_carlo_ci_low": 0.9469683341785607,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.95105,
+            "replications": 20000,
+            "successes": 19021
+          },
+          "current__daily": {
+            "monte_carlo_ci_high": 0.9553613308016903,
+            "monte_carlo_ci_low": 0.9475391366361866,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.9516,
+            "replications": 20000,
+            "successes": 19032
+          },
+          "current__twice_weekly": {
+            "monte_carlo_ci_high": 0.953630100199884,
+            "monte_carlo_ci_low": 0.9456715611233156,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.9498,
+            "replications": 20000,
+            "successes": 18996
+          }
+        },
+        "policy_blocking_reason_frequency": {
+          "guardrail_noninferiority_not_established:complaint_14d": {
+            "monte_carlo_ci_high": 0.9998343806179414,
+            "monte_carlo_ci_low": 0.9990342498779915,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.9996,
+            "replications": 20000,
+            "successes": 19992
+          },
+          "guardrail_noninferiority_not_established:unsubscribe_14d": {
+            "monte_carlo_ci_high": 0.9991353468084434,
+            "monte_carlo_ci_low": 0.9977339469571134,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.9986,
+            "replications": 20000,
+            "successes": 19972
+          },
+          "invalid_inference": {
+            "monte_carlo_ci_high": 0.0003316348119167422,
+            "monte_carlo_ci_low": 0.0,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.0,
+            "replications": 20000,
+            "successes": 0
+          },
+          "pre_period_negative_control": {
+            "monte_carlo_ci_high": 0.04658868484504221,
+            "monte_carlo_ci_low": 0.03921459519045567,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.04275,
+            "replications": 20000,
+            "successes": 855
+          },
+          "primary_superiority_not_established": {
+            "monte_carlo_ci_high": 0.0003316348119167422,
+            "monte_carlo_ci_low": 0.0,
+            "monte_carlo_ci_method": "wilson_score",
+            "monte_carlo_confidence": 0.99,
+            "rate": 0.0,
+            "replications": 20000,
+            "successes": 0
+          }
+        },
+        "policy_continue_testing": {
+          "monte_carlo_ci_high": 1.0,
+          "monte_carlo_ci_low": 0.9996683651880833,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 1.0,
+          "replications": 20000,
+          "successes": 20000
+        },
+        "policy_criteria_met": {
+          "monte_carlo_ci_high": 0.0003316348119167422,
+          "monte_carlo_ci_low": 0.0,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 0.0,
+          "replications": 20000,
+          "successes": 0
+        },
+        "primary_family_any_holm_rejection": {
+          "monte_carlo_ci_high": 1.0,
+          "monte_carlo_ci_low": 0.9996683651880833,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 1.0,
+          "replications": 20000,
+          "successes": 20000
+        },
+        "primary_family_any_superiority": {
+          "monte_carlo_ci_high": 1.0,
+          "monte_carlo_ci_low": 0.9996683651880833,
+          "monte_carlo_ci_method": "wilson_score",
+          "monte_carlo_confidence": 0.99,
+          "rate": 1.0,
+          "replications": 20000,
+          "successes": 20000
+        }
+      },
+      "replications_in_every_denominator": 20000,
+      "replications_requested": 20000,
+      "scenario_id": "strong_effect_guardrails_at_margins"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "simulation_contract": {
+    "active_arms": [
+      "current__daily",
+      "current__twice_weekly",
+      "challenger_a__daily",
+      "challenger_a__twice_weekly",
+      "challenger_b__daily",
+      "challenger_b__twice_weekly"
+    ],
+    "bit_generator": "PCG64",
+    "block_columns": [
+      "lifecycle_segment",
+      "tenure_band",
+      "assignment_wave"
+    ],
+    "block_count": 12,
+    "guardrail_uncertainty": "pooled Newcombe-style one-sided bounds with 12-way Bonferroni",
+    "invalid_replicate_policy": "fail closed and retain every requested replicate in every rate denominator",
+    "monte_carlo_intervals": "two-sided 99% Wilson score",
+    "negative_control_multiplicity": "six active-vs-holdout two-sided Holm family",
+    "primary_multiplicity": "six active-vs-holdout two-sided Holm family",
+    "shared_holdout": true,
+    "stream_derivation": "first 128 bits of SHA-256 over contract|seed|scenario|outcome",
+    "version": "lifecycle-operating-characteristics-v1"
+  }
+}

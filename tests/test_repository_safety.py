@@ -9,6 +9,7 @@ from email_experiment.decision import REQUIRED_QUALITY_GATES
 REPOSITORY = Path(__file__).resolve().parents[1]
 
 PUBLIC_JSON_ALLOWLIST = {
+    "reports/prospective-synthetic-operating-characteristics.json",
     "reports/prospective-synthetic-benchmark.json",
     "reports/source-benchmark.json",
 }
@@ -130,6 +131,7 @@ FORBIDDEN_REPORT_KEYS = {
     "participant_id",
     "recipient_id",
     "records",
+    "replicate_id",
     "row_data",
     "rows",
     "source_path",
@@ -184,6 +186,16 @@ def _json_items(value: object) -> Iterator[tuple[str, object]]:
     elif isinstance(value, list):
         for child in value:
             yield from _json_items(child)
+
+
+def _json_lists(value: object) -> Iterator[list[object]]:
+    if isinstance(value, dict):
+        for child in value.values():
+            yield from _json_lists(child)
+    elif isinstance(value, list):
+        yield value
+        for child in value:
+            yield from _json_lists(child)
 
 
 def test_git_candidate_inventory_is_unique() -> None:
@@ -328,6 +340,49 @@ def test_prospective_report_is_canonical_aggregate_only_when_present() -> None:
     assert isinstance(report.get("quality_gates"), dict)
     assert set(report["quality_gates"]) == set(REQUIRED_QUALITY_GATES)
     assert all(value is True for value in report["quality_gates"].values())
+
+    report_items = list(_json_items(report))
+    forbidden_keys = sorted(
+        key for key, _ in report_items if key.lower() in FORBIDDEN_REPORT_KEYS
+    )
+    assert forbidden_keys == []
+    assert SYNTHETIC_ROW_ID.search(raw) is None
+    assert EMAIL_ADDRESS.search(raw) is None
+    assert not any(pattern.search(raw) for pattern in LOCAL_PATHS)
+
+    canonical = json.dumps(report, indent=2, sort_keys=True, allow_nan=False) + "\n"
+    assert raw == canonical
+
+
+def test_operating_characteristics_report_is_safe_aggregate_only_when_present() -> None:
+    report_path = (
+        REPOSITORY
+        / "reports"
+        / "prospective-synthetic-operating-characteristics.json"
+    )
+    if not report_path.exists():
+        return
+
+    raw = report_path.read_bytes().decode("utf-8")
+    report = json.loads(raw)
+    assert report["artifact_type"] == (
+        "synthetic_prospective_operating_characteristics_benchmark"
+    )
+    assert report["data_classification"] == "synthetic"
+    assert report["report_scope"] == "aggregate_only_monte_carlo"
+    assert report["schema_version"] == "1.0.0"
+    assert report["config"]["replications"] == 20_000
+    assert len(report["scenarios"]) == 5
+    assert report["calibration_status"] == "passed"
+    assert report["all_calibration_gates_passed"] is True
+    assert report["design_readiness"]["status"] == "continue_testing"
+    assert report["production_api_parity"]["replications"] == 12
+    assert report["production_api_parity"]["passed"] is True
+    assert all(
+        scenario["replications_in_every_denominator"] == 20_000
+        for scenario in report["scenarios"]
+    )
+    assert max((len(items) for items in _json_lists(report)), default=0) <= 12
 
     report_items = list(_json_items(report))
     forbidden_keys = sorted(
